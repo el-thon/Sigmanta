@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import { ArrowLeft, Download, Save, Share2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { MapWorkspaceClient } from "@/components/MapWorkspaceClient";
+import { ProjectMapToolbar } from "@/components/ProjectMapToolbar";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import type { WorkspaceMapObject } from "@/components/MapWorkspace";
@@ -59,15 +60,7 @@ export default async function ProjectMapPage({ params }: { params: Promise<{ id:
             <a href="/">About</a>
           </nav>
         </div>
-        <div className="hidden items-center gap-3 md:flex">
-          <p className="text-right text-xs">
-            Status: <span className="font-bold text-moss">Online</span><br />
-            <span className="text-earth-dark/55">Last saved: 2m ago</span>
-          </p>
-          <button className="brutal-button bg-earth-light px-4 py-3"><Share2 size={16} /> Share</button>
-          <button className="brutal-button bg-earth-light px-4 py-3"><Download size={16} /> Export</button>
-          <button className="brutal-button bg-earth-dark px-4 py-3 text-earth-light"><Save size={16} /> Save</button>
-        </div>
+        <ProjectMapToolbar projectId={project.id} projectName={project.name} />
       </header>
       <MapWorkspaceClient
         projectId={project.id}

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Circle as LeafletCircle, GeoJSON as GeoJSONLayer, MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet-draw";
@@ -84,6 +84,8 @@ type DraftObject = {
   latitude: number | null;
   longitude: number | null;
 };
+
+type WorkspaceCommandEvent = CustomEvent<{ type: "export" | "save" }>;
 
 const tools: ToolConfig[] = [
   {
@@ -261,6 +263,17 @@ function DrawBridge({ activeTool, onCreated }: { activeTool: ToolConfig | null; 
   return null;
 }
 
+function MapReady({ onReady }: { onReady: (map: L.Map | null) => void }) {
+  const map = useMap();
+
+  useEffect(() => {
+    onReady(map);
+    return () => onReady(null);
+  }, [map, onReady]);
+
+  return null;
+}
+
 function objectSummary(object: WorkspaceMapObject) {
   const radius = getMetadataRadius(object.metadata);
   if (radius) return `Radius ${Math.round(radius)} m`;
@@ -268,6 +281,151 @@ function objectSummary(object: WorkspaceMapObject) {
   if (object.lengthSize) return `${Math.round(object.lengthSize)} m`;
   if (object.latitude && object.longitude) return `${object.latitude.toFixed(5)}, ${object.longitude.toFixed(5)}`;
   return "Geometry JSON";
+}
+
+function dispatchWorkspaceAction(type: "export" | "save", status: "pending" | "success" | "error", message: string) {
+  window.dispatchEvent(new CustomEvent("sigmita:workspace-action", { detail: { type, status, message } }));
+}
+
+function safeFilename(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 70) || "project";
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
+function drawGeoJsonObject(ctx: CanvasRenderingContext2D, map: L.Map, object: WorkspaceMapObject, color: string) {
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.fillStyle = color;
+  ctx.lineWidth = object.objectType === "route" ? 4 : 2;
+  ctx.globalAlpha = 1;
+
+  const drawPath = (coordinates: number[][], closePath = false) => {
+    coordinates.forEach(([longitude, latitude], index) => {
+      const point = map.latLngToContainerPoint([latitude, longitude]);
+      if (index === 0) {
+        ctx.moveTo(point.x, point.y);
+      } else {
+        ctx.lineTo(point.x, point.y);
+      }
+    });
+    if (closePath) ctx.closePath();
+  };
+
+  if (object.geometryType === "circle" && object.latitude && object.longitude) {
+    const radius = getMetadataRadius(object.metadata);
+    if (radius) {
+      const center = map.latLngToContainerPoint([object.latitude, object.longitude]);
+      const metersPerDegreeLng = Math.max(111320 * Math.cos((object.latitude * Math.PI) / 180), 1);
+      const edge = map.latLngToContainerPoint([object.latitude, object.longitude + radius / metersPerDegreeLng]);
+      const pixelRadius = Math.abs(edge.x - center.x);
+      ctx.beginPath();
+      ctx.arc(center.x, center.y, pixelRadius, 0, Math.PI * 2);
+      ctx.globalAlpha = 0.18;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.stroke();
+    }
+    ctx.restore();
+    return;
+  }
+
+  if (object.geometry.geometry.type === "Point") {
+    const [longitude, latitude] = object.geometry.geometry.coordinates;
+    const point = map.latLngToContainerPoint([latitude, longitude]);
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.lineWidth = 3;
+    ctx.strokeStyle = "#f4eee6";
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  if (object.geometry.geometry.type === "LineString") {
+    ctx.beginPath();
+    drawPath(object.geometry.geometry.coordinates as number[][]);
+    ctx.setLineDash(object.objectType === "route" ? [8, 6] : []);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  if (object.geometry.geometry.type === "Polygon") {
+    ctx.beginPath();
+    const rings = object.geometry.geometry.coordinates as number[][][];
+    rings.forEach((ring) => drawPath(ring, true));
+    ctx.globalAlpha = object.objectType === "disaster_area" || object.objectType === "radius_area" ? 0.16 : 0.22;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
+  ctx.restore();
+}
+
+async function exportLeafletViewport(map: L.Map, objects: WorkspaceMapObject[], getColor: (object: WorkspaceMapObject) => string, projectName: string) {
+  const size = map.getSize();
+  const container = map.getContainer();
+  const containerRect = container.getBoundingClientRect();
+  const canvas = document.createElement("canvas");
+  const scale = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(size.x * scale);
+  canvas.height = Math.round(size.y * scale);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas tidak tersedia di browser.");
+
+  ctx.scale(scale, scale);
+  ctx.fillStyle = "#dfddd5";
+  ctx.fillRect(0, 0, size.x, size.y);
+
+  const tiles = Array.from(container.querySelectorAll<HTMLImageElement>(".leaflet-tile-loaded"));
+  await Promise.all(tiles.map((tile) => tile.decode?.().catch(() => undefined) ?? Promise.resolve()));
+
+  tiles.forEach((tile) => {
+    if (!tile.naturalWidth || !tile.naturalHeight) return;
+    const rect = tile.getBoundingClientRect();
+    const opacity = Number(tile.style.opacity || 1);
+    ctx.globalAlpha = Number.isFinite(opacity) ? opacity : 1;
+    ctx.drawImage(tile, rect.left - containerRect.left, rect.top - containerRect.top, rect.width, rect.height);
+  });
+  ctx.globalAlpha = 1;
+
+  objects.forEach((object) => drawGeoJsonObject(ctx, map, object, getColor(object)));
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    try {
+      canvas.toBlob((nextBlob) => {
+        if (nextBlob) {
+          resolve(nextBlob);
+        } else {
+          reject(new Error("Screenshot peta gagal dibuat."));
+        }
+      }, "image/png");
+    } catch {
+      reject(new Error("Screenshot gagal karena tile peta tidak mengizinkan export canvas."));
+    }
+  });
+
+  const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  downloadBlob(blob, `sigmita-${safeFilename(projectName)}-${timestamp}.png`);
 }
 
 export function MapWorkspace({
@@ -295,6 +453,7 @@ export function MapWorkspace({
   const [selectedObject, setSelectedObject] = useState<WorkspaceMapObject | null>(initialObjects[0] ?? null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
     delete (L.Icon.Default.prototype as unknown as { _getIconUrl?: unknown })._getIconUrl;
@@ -316,6 +475,110 @@ export function MapWorkspace({
     if (layer.renderType === "primary") return layer.layerType === activePrimaryLayer;
     return visibleOverlays[layer.layerType] ?? true;
   });
+
+  const handleMapReady = useCallback((map: L.Map | null) => {
+    mapRef.current = map;
+  }, []);
+
+  const exportCurrentViewport = useCallback(async () => {
+    const map = mapRef.current;
+    if (!map) {
+      dispatchWorkspaceAction("export", "error", "Peta belum siap untuk diexport.");
+      return;
+    }
+
+    dispatchWorkspaceAction("export", "pending", "Membuat screenshot peta...");
+    try {
+      const draftLayer = draft ? layerByType.get(draft.tool.layerType) : null;
+      const objectsForExport = draft && draftLayer
+        ? [
+            ...visibleObjects,
+            {
+              id: -1,
+              projectId,
+              layerId: draftLayer.id,
+              categoryId: null,
+              riskLevelId: null,
+              name: draft.tool.label,
+              label: null,
+              objectType: draft.tool.objectType,
+              geometryType: draft.tool.geometryType,
+              areaSize: draft.areaSize,
+              lengthSize: draft.lengthSize,
+              latitude: draft.latitude,
+              longitude: draft.longitude,
+              description: null,
+              notes: null,
+              geometry: draft.geometry,
+              metadata: draft.radiusSize ? { radius_m: draft.radiusSize } : {},
+              styleConfig: null,
+              createdAt: "",
+              updatedAt: "",
+            } satisfies WorkspaceMapObject,
+          ]
+        : visibleObjects;
+
+      await exportLeafletViewport(
+        map,
+        objectsForExport,
+        (object) => {
+          if (object.id === -1 && draft) return layerColor(draft.tool.layerType);
+          const layer = layerById.get(object.layerId);
+          const risk = object.riskLevelId ? riskById.get(object.riskLevelId) : null;
+          return layerColor(layer?.layerType, risk);
+        },
+        projectName,
+      );
+      dispatchWorkspaceAction("export", "success", "Screenshot peta berhasil didownload.");
+    } catch (error) {
+      dispatchWorkspaceAction("export", "error", error instanceof Error ? error.message : "Export screenshot gagal.");
+    }
+  }, [draft, layerById, layerByType, projectId, projectName, riskById, visibleObjects]);
+
+  const saveProjectView = useCallback(async () => {
+    const map = mapRef.current;
+    if (!map) {
+      dispatchWorkspaceAction("save", "error", "Peta belum siap untuk disimpan.");
+      return;
+    }
+
+    const centerPoint = map.getCenter();
+    dispatchWorkspaceAction("save", "pending", "Menyimpan view project...");
+    const response = await fetch(`/api/projects/${projectId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        centerLat: centerPoint.lat,
+        centerLng: centerPoint.lng,
+        defaultZoom: map.getZoom(),
+        viewConfig: {
+          activePrimaryLayer,
+          visibleOverlays,
+          activeToolKey,
+          savedAt: new Date().toISOString(),
+        },
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      dispatchWorkspaceAction("save", "error", data?.message ?? "View project gagal disimpan.");
+      return;
+    }
+
+    dispatchWorkspaceAction("save", "success", `Last saved: ${new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`);
+  }, [activePrimaryLayer, activeToolKey, projectId, visibleOverlays]);
+
+  useEffect(() => {
+    const handleWorkspaceCommand = (event: Event) => {
+      const command = (event as WorkspaceCommandEvent).detail;
+      if (command.type === "export") void exportCurrentViewport();
+      if (command.type === "save") void saveProjectView();
+    };
+
+    window.addEventListener("sigmita:workspace-command", handleWorkspaceCommand);
+    return () => window.removeEventListener("sigmita:workspace-command", handleWorkspaceCommand);
+  }, [exportCurrentViewport, saveProjectView]);
 
   async function saveDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -481,7 +744,7 @@ export function MapWorkspace({
 
         <div className="mt-6 border-t-2 border-earth-dark pt-5">
           <a href="/settings" className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.06em] text-earth-dark/70">
-            <Settings size={18} /> Settings
+            <Settings size={18} /> Manage Users
           </a>
         </div>
       </aside>
@@ -500,8 +763,10 @@ export function MapWorkspace({
           {center[0].toFixed(4)}° N, {center[1].toFixed(4)}° E | {objects.length} objek
         </div>
         <MapContainer center={center} zoom={zoom} className="h-full w-full">
+          <MapReady onReady={handleMapReady} />
           <TileLayer
             attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+            crossOrigin="anonymous"
             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
           />
           {visibleObjects.map((object) => {
