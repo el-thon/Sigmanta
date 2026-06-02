@@ -1,9 +1,6 @@
-import dynamic from "next/dynamic";
 import { prisma } from "@/lib/prisma";
-
-const MapWorkspace = dynamic(() => import("@/components/MapWorkspace").then((mod) => mod.MapWorkspace), {
-  ssr: false,
-});
+import { ArrowLeft, Download, Save, Share2 } from "lucide-react";
+import { MapWorkspaceClient } from "@/components/MapWorkspaceClient";
 
 export default async function ProjectMapPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,15 +11,30 @@ export default async function ProjectMapPage({ params }: { params: Promise<{ id:
     : [-5.3971, 105.2668];
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-6 text-white">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm text-cyan-300">Workspace Peta</p>
-          <h1 className="text-2xl font-bold">{project?.name ?? "Project tidak ditemukan"}</h1>
+    <main className="page-enter min-h-screen bg-earth-light text-earth-dark">
+      <header className="topographic-paper flex h-[66px] items-center justify-between border-b-2 border-earth-dark px-5">
+        <div className="flex items-center gap-8">
+          <a href="/dashboard" className="font-display flex items-center gap-2 text-2xl font-black">
+            <ArrowLeft size={20} /> SIGMITA GIS
+          </a>
+          <nav className="hidden items-center gap-8 text-sm text-earth-dark/75 md:flex">
+            <a href="/dashboard">Global Risks</a>
+            <a href="/projects">Land Registry</a>
+            <a href="#">Methodology</a>
+            <a href="/">About</a>
+          </nav>
         </div>
-        <a className="rounded-lg border border-white/10 px-4 py-2 text-sm hover:bg-white/10" href="/dashboard">Dashboard</a>
-      </div>
-      <MapWorkspace center={center} zoom={project?.defaultZoom ?? 13} />
+        <div className="hidden items-center gap-3 md:flex">
+          <p className="text-right text-xs">
+            Status: <span className="font-bold text-moss">Online</span><br />
+            <span className="text-earth-dark/55">Last saved: 2m ago</span>
+          </p>
+          <button className="brutal-button bg-earth-light px-4 py-3"><Share2 size={16} /> Share</button>
+          <button className="brutal-button bg-earth-light px-4 py-3"><Download size={16} /> Export</button>
+          <button className="brutal-button bg-earth-dark px-4 py-3 text-earth-light"><Save size={16} /> Save</button>
+        </div>
+      </header>
+      <MapWorkspaceClient center={center} zoom={project?.defaultZoom ?? 13} />
     </main>
   );
 }
