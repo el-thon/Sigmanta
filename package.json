@@ -1,1 +1,44 @@
-{"name":"sigmanta","version":"0.1.0","private":true,"scripts":{"dev":"next dev","build":"prisma generate && next build","start":"next start","lint":"next lint","prisma:generate":"prisma generate","prisma:migrate":"prisma migrate dev","prisma:seed":"tsx prisma/seed.ts"},"dependencies":{"@prisma/client":"latest","@turf/turf":"latest","bcryptjs":"latest","clsx":"latest","jose":"latest","leaflet":"latest","leaflet-draw":"latest","next":"latest","react":"latest","react-dom":"latest","react-leaflet":"latest","zod":"latest"},"devDependencies":{"@types/bcryptjs":"latest","@types/leaflet":"latest","@types/leaflet-draw":"latest","@types/node":"latest","@types/react":"latest","@types/react-dom":"latest","autoprefixer":"latest","eslint":"latest","eslint-config-next":"latest","postcss":"latest","prisma":"latest","tailwindcss":"latest","tsx":"latest","typescript":"latest"}}
+{
+  "name": "sigmanta",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "start": "next start",
+    "lint": "next lint",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.0",
+    "@turf/turf": "^7.2.0",
+    "bcryptjs": "^3.0.2",
+    "clsx": "^2.1.1",
+    "jose": "^6.1.0",
+    "leaflet": "^1.9.4",
+    "leaflet-draw": "^1.0.4",
+    "next": "^15.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-leaflet": "^5.0.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/leaflet": "^1.9.20",
+    "@types/leaflet-draw": "^1.0.13",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^15.3.0",
+    "postcss": "^8.4.49",
+    "prisma": "^6.19.0",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.0"
+  }
+}
