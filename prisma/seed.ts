@@ -1,7 +1,10 @@
 import { prisma } from "../src/lib/prisma";
 import { DEFAULT_RISK_LEVELS } from "../src/constants/defaultLayers";
+import bcrypt from "bcryptjs";
 
 async function main() {
+  const demoPassword = await bcrypt.hash("password123", 10);
+
   for (const item of DEFAULT_RISK_LEVELS) {
     await prisma.riskLevel.upsert({
       where: { code: item.code },
@@ -9,6 +12,21 @@ async function main() {
       create: item,
     });
   }
+
+  await prisma.user.upsert({
+    where: { email: "admin@sigmita.test" },
+    update: {
+      name: "Admin SIGMITA",
+      password: demoPassword,
+      role: "admin",
+    },
+    create: {
+      name: "Admin SIGMITA",
+      email: "admin@sigmita.test",
+      password: demoPassword,
+      role: "admin",
+    },
+  });
 }
 
 main()

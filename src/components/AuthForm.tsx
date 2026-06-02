@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Eye, EyeOff } from "lucide-react";
 
 type AuthFormProps = {
   mode: "login" | "register";
@@ -12,6 +12,7 @@ export function AuthForm({ mode }: AuthFormProps) {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -68,7 +69,24 @@ export function AuthForm({ mode }: AuthFormProps) {
           Kata Sandi
           {mode === "login" ? <a href="#" className="text-moss">Lupa Sandi?</a> : null}
         </span>
-        <input name="password" type="password" required minLength={mode === "register" ? 6 : 1} className="brutal-card mt-2 w-full bg-earth-light px-4 py-4 outline-none" placeholder="••••••••" />
+        <span className="brutal-card mt-2 flex w-full items-center bg-earth-light">
+          <input
+            name="password"
+            type={showPassword ? "text" : "password"}
+            required
+            minLength={mode === "register" ? 6 : 1}
+            className="min-w-0 flex-1 bg-transparent px-4 py-4 outline-none"
+            placeholder="••••••••"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((current) => !current)}
+            className="mr-2 grid h-10 w-10 place-items-center border border-earth-dark/25 bg-earth-paper text-earth-dark transition hover:bg-moss-light"
+            aria-label={showPassword ? "Sembunyikan password" : "Lihat password"}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </span>
       </label>
 
       {error ? <p className="brutal-card border-hazard bg-hazard-light px-4 py-3 text-sm text-earth-dark">{error}</p> : null}
