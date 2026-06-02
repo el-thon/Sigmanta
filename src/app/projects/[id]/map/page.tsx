@@ -1,10 +1,45 @@
 import { prisma } from "@/lib/prisma";
 import { ArrowLeft, Download, Save, Share2 } from "lucide-react";
 import { MapWorkspaceClient } from "@/components/MapWorkspaceClient";
+import { getCurrentUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import type { WorkspaceMapObject } from "@/components/MapWorkspace";
+import type { Feature } from "geojson";
+
+function serializeMapObject(object: Awaited<ReturnType<typeof prisma.mapObject.findFirstOrThrow>>): WorkspaceMapObject {
+  return {
+    ...object,
+    areaSize: object.areaSize ? Number(object.areaSize) : null,
+    lengthSize: object.lengthSize ? Number(object.lengthSize) : null,
+    latitude: object.latitude ? Number(object.latitude) : null,
+    longitude: object.longitude ? Number(object.longitude) : null,
+    geometry: object.geometry as unknown as Feature,
+    createdAt: object.createdAt.toISOString(),
+    updatedAt: object.updatedAt.toISOString(),
+  };
+}
 
 export default async function ProjectMapPage({ params }: { params: Promise<{ id: string }> }) {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
   const { id } = await params;
-  const project = await prisma.mappingProject.findUnique({ where: { id: Number(id) } });
+  const project = await prisma.mappingProject.findFirst({
+    where: { id: Number(id), ownerId: user.id },
+    include: {
+      layers: {
+        include: { categories: true },
+        orderBy: { displayOrder: "asc" },
+      },
+      objects: {
+        orderBy: { updatedAt: "desc" },
+      },
+    },
+  });
+
+  if (!project) redirect("/projects");
+
+  const riskLevels = await prisma.riskLevel.findMany({ orderBy: { score: "asc" } });
 
   const center: [number, number] = project?.centerLat && project?.centerLng
     ? [Number(project.centerLat), Number(project.centerLng)]
@@ -34,7 +69,33 @@ export default async function ProjectMapPage({ params }: { params: Promise<{ id:
           <button className="brutal-button bg-earth-dark px-4 py-3 text-earth-light"><Save size={16} /> Save</button>
         </div>
       </header>
-      <MapWorkspaceClient center={center} zoom={project?.defaultZoom ?? 13} />
+      <MapWorkspaceClient
+        projectId={project.id}
+        projectName={project.name}
+        projectLocation={project.locationName ?? "Disaster Mitigation Unit"}
+        center={center}
+        zoom={project.defaultZoom ?? 13}
+        layers={project.layers.map((layer) => ({
+          id: layer.id,
+          name: layer.name,
+          layerType: layer.layerType,
+          renderType: layer.renderType,
+          isVisible: layer.isVisible,
+          categories: layer.categories.map((category) => ({
+            id: category.id,
+            name: category.name,
+            color: category.color,
+          })),
+        }))}
+        riskLevels={riskLevels.map((risk) => ({
+          id: risk.id,
+          name: risk.name,
+          code: risk.code,
+          color: risk.color,
+          score: risk.score,
+        }))}
+        initialObjects={project.objects.map(serializeMapObject)}
+      />
     </main>
   );
 }
