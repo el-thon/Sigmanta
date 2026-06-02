@@ -1,0 +1,273 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  user
+}
+
+enum ProjectStatus {
+  draft
+  active
+  archived
+  imported
+}
+
+enum LayerType {
+  land_segmentation
+  disaster_risk
+  elevation
+  marker_label
+  evacuation_route
+  mitigation_resource
+}
+
+enum RenderType {
+  primary
+  overlay
+}
+
+enum ObjectType {
+  land_segment
+  disaster_area
+  elevation_area
+  marker
+  route
+  resource_point
+  radius_area
+}
+
+enum GeometryType {
+  point
+  linestring
+  polygon
+  rectangle
+  circle
+}
+
+enum ObjectStatus {
+  active
+  inactive
+  need_verification
+}
+
+enum ExportType {
+  png
+  pdf
+  geojson
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(100)
+  email     String   @unique @db.VarChar(100)
+  password  String   @db.VarChar(255)
+  role      UserRole @default(user)
+  avatarUrl String?  @map("avatar_url") @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  projects       MappingProject[] @relation("ProjectOwner")
+  mapObjects     MapObject[]      @relation("ObjectCreator")
+  updatedObjects MapObject[]      @relation("ObjectUpdater")
+  shareLinks     ProjectShareLink[]
+  imports        ProjectImport[]  @relation("ProjectImporter")
+  exports        MapExport[]
+  activityLogs   ActivityLog[]
+
+  @@map("users")
+}
+
+model MappingProject {
+  id           Int           @id @default(autoincrement())
+  ownerId      Int           @map("owner_id")
+  sourceProjectId Int?       @map("source_project_id")
+  name         String        @db.VarChar(150)
+  slug         String        @db.VarChar(180)
+  description  String?
+  locationName String?       @map("location_name") @db.VarChar(150)
+  centerLat    Decimal?      @map("center_lat") @db.Decimal(10, 8)
+  centerLng    Decimal?      @map("center_lng") @db.Decimal(11, 8)
+  defaultZoom  Int           @default(13) @map("default_zoom")
+  status       ProjectStatus @default(draft)
+  viewConfig   Json?         @map("view_config")
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+
+  owner         User             @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  sourceProject MappingProject?  @relation("ProjectClone", fields: [sourceProjectId], references: [id])
+  clonedProjects MappingProject[] @relation("ProjectClone")
+  layers        ProjectLayer[]
+  shareLinks    ProjectShareLink[]
+  importsSource ProjectImport[]   @relation("ImportSource")
+  importsTarget ProjectImport[]   @relation("ImportTarget")
+  objects       MapObject[]
+  exports       MapExport[]
+  activityLogs  ActivityLog[]
+
+  @@unique([ownerId, slug])
+  @@map("mapping_projects")
+}
+
+model ProjectShareLink {
+  id        Int      @id @default(autoincrement())
+  projectId Int      @map("project_id")
+  createdBy Int      @map("created_by")
+  token     String   @unique @db.VarChar(255)
+  isActive  Boolean  @default(true) @map("is_active")
+  expiresAt DateTime? @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  project MappingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator User           @relation(fields: [createdBy], references: [id])
+  imports ProjectImport[]
+
+  @@map("project_share_links")
+}
+
+model ProjectImport {
+  id              Int      @id @default(autoincrement())
+  shareLinkId     Int      @map("share_link_id")
+  sourceProjectId Int      @map("source_project_id")
+  importedProjectId Int    @map("imported_project_id")
+  importedBy      Int      @map("imported_by")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  shareLink       ProjectShareLink @relation(fields: [shareLinkId], references: [id])
+  sourceProject   MappingProject   @relation("ImportSource", fields: [sourceProjectId], references: [id])
+  importedProject MappingProject   @relation("ImportTarget", fields: [importedProjectId], references: [id])
+  importer        User             @relation("ProjectImporter", fields: [importedBy], references: [id])
+
+  @@map("project_imports")
+}
+
+model ProjectLayer {
+  id           Int        @id @default(autoincrement())
+  projectId    Int        @map("project_id")
+  name         String     @db.VarChar(120)
+  layerType    LayerType  @map("layer_type")
+  renderType   RenderType @default(overlay) @map("render_type")
+  isVisible    Boolean    @default(true) @map("is_visible")
+  displayOrder Int        @default(0) @map("display_order")
+  styleConfig  Json?      @map("style_config")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  project    MappingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  categories Category[]
+  objects    MapObject[]
+
+  @@map("project_layers")
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  layerId     Int      @map("layer_id")
+  name        String   @db.VarChar(100)
+  code        String?  @db.VarChar(80)
+  color       String?  @db.VarChar(20)
+  icon        String?  @db.VarChar(100)
+  description String?
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  layer   ProjectLayer @relation(fields: [layerId], references: [id], onDelete: Cascade)
+  objects MapObject[]
+
+  @@map("categories")
+}
+
+model RiskLevel {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(50)
+  code        String   @unique @db.VarChar(50)
+  color       String   @db.VarChar(20)
+  score       Int
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  objects MapObject[]
+
+  @@map("risk_levels")
+}
+
+model MapObject {
+  id           Int          @id @default(autoincrement())
+  projectId    Int          @map("project_id")
+  layerId      Int          @map("layer_id")
+  categoryId   Int?         @map("category_id")
+  riskLevelId  Int?         @map("risk_level_id")
+  createdBy    Int          @map("created_by")
+  updatedBy    Int?         @map("updated_by")
+  name         String       @db.VarChar(150)
+  label        String?      @db.VarChar(150)
+  objectType   ObjectType   @map("object_type")
+  geometryType GeometryType @map("geometry_type")
+  areaSize     Decimal?     @map("area_size") @db.Decimal(14, 2)
+  areaUnit     String       @default("m2") @map("area_unit") @db.VarChar(10)
+  lengthSize   Decimal?     @map("length_size") @db.Decimal(14, 2)
+  lengthUnit   String       @default("m") @map("length_unit") @db.VarChar(10)
+  latitude     Decimal?     @db.Decimal(10, 8)
+  longitude    Decimal?     @db.Decimal(11, 8)
+  status       ObjectStatus @default(active)
+  description  String?
+  notes        String?
+  geometry     Json
+  metadata     Json?
+  labelConfig  Json?        @map("label_config")
+  styleConfig  Json?        @map("style_config")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+
+  project   MappingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  layer     ProjectLayer   @relation(fields: [layerId], references: [id], onDelete: Cascade)
+  category  Category?      @relation(fields: [categoryId], references: [id])
+  riskLevel RiskLevel?     @relation(fields: [riskLevelId], references: [id])
+  creator   User           @relation("ObjectCreator", fields: [createdBy], references: [id])
+  updater   User?          @relation("ObjectUpdater", fields: [updatedBy], references: [id])
+
+  @@map("map_objects")
+}
+
+model MapExport {
+  id           Int        @id @default(autoincrement())
+  projectId    Int        @map("project_id")
+  createdBy    Int        @map("created_by")
+  title        String     @db.VarChar(150)
+  exportType   ExportType @map("export_type")
+  filePath     String?    @map("file_path") @db.VarChar(255)
+  exportConfig Json?      @map("export_config")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  project MappingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator User           @relation(fields: [createdBy], references: [id])
+
+  @@map("map_exports")
+}
+
+model ActivityLog {
+  id          Int      @id @default(autoincrement())
+  projectId   Int      @map("project_id")
+  userId      Int      @map("user_id")
+  action      String   @db.VarChar(100)
+  targetType  String?  @map("target_type") @db.VarChar(100)
+  targetId    Int?     @map("target_id")
+  description String?
+  metadata    Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  project MappingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id])
+
+  @@map("activity_logs")
+}
