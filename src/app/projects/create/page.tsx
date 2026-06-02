@@ -1,19 +1,22 @@
-export default function CreateProjectPage() {
+import { CreateProjectForm } from "@/components/CreateProjectForm";
+import { getCurrentUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
+
+export default async function CreateProjectPage() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-10 text-white">
-      <section className="mx-auto max-w-2xl rounded-2xl border border-white/10 bg-white/5 p-8">
-        <p className="text-sm text-cyan-300">Project Baru</p>
-        <h1 className="mt-2 text-3xl font-bold">Buat Project Pemetaan</h1>
-        <p className="mt-2 text-slate-300">Form UI awal. Integrasi submit ke API /api/projects dapat dilanjutkan pada tahap implementasi form client.</p>
-        <div className="mt-8 space-y-4">
-          <input className="w-full rounded-lg border border-white/10 bg-slate-900 px-4 py-3" placeholder="Nama project" />
-          <textarea className="min-h-28 w-full rounded-lg border border-white/10 bg-slate-900 px-4 py-3" placeholder="Deskripsi project" />
-          <input className="w-full rounded-lg border border-white/10 bg-slate-900 px-4 py-3" placeholder="Lokasi umum" />
-          <div className="grid gap-4 md:grid-cols-2">
-            <input className="rounded-lg border border-white/10 bg-slate-900 px-4 py-3" placeholder="Center latitude" />
-            <input className="rounded-lg border border-white/10 bg-slate-900 px-4 py-3" placeholder="Center longitude" />
-          </div>
-          <button className="rounded-lg bg-cyan-400 px-5 py-3 font-semibold text-slate-950">Simpan Project</button>
+    <main className="page-enter topographic-paper min-h-screen px-6 py-10 text-earth-dark">
+      <section className="mx-auto max-w-3xl">
+        <a className="label-mono text-moss" href="/projects">← Kembali ke daftar project</a>
+        <div className="brutal-card mt-6 bg-earth-paper p-8">
+          <p className="label-mono text-moss">Project Baru</p>
+          <h1 className="font-display mt-2 text-4xl font-black">Buat Project Pemetaan</h1>
+          <p className="mt-3 max-w-2xl leading-7 text-earth-dark/70">
+            Data awal ini akan membentuk workspace peta, layer default, dan activity log project.
+          </p>
+          <CreateProjectForm />
         </div>
       </section>
     </main>

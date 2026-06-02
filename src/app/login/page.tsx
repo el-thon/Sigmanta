@@ -1,16 +1,39 @@
+import { AuthForm } from "@/components/AuthForm";
+import { Map, Radar } from "lucide-react";
+
 export default function LoginPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 text-white">
-      <section className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-8">
-        <h1 className="text-3xl font-bold">Masuk SIGMITA</h1>
-        <p className="mt-2 text-sm text-slate-300">Halaman UI login awal. Integrasi form ke API dapat dilanjutkan pada tahap berikutnya.</p>
-        <div className="mt-6 space-y-4">
-          <input className="w-full rounded-lg border border-white/10 bg-slate-900 px-4 py-3" placeholder="Email" />
-          <input className="w-full rounded-lg border border-white/10 bg-slate-900 px-4 py-3" placeholder="Password" type="password" />
-          <button className="w-full rounded-lg bg-cyan-400 px-4 py-3 font-semibold text-slate-950">Masuk</button>
+    <main className="page-enter topographic-paper grid min-h-screen grid-cols-1 text-earth-dark lg:grid-cols-2">
+      <section className="flex items-center justify-center px-6 py-12">
+        <div className="w-full max-w-lg">
+          <a href="/" className="flex items-center gap-4">
+            <span className="grid h-12 w-12 place-items-center border-2 border-earth-dark bg-earth-paper shadow-[4px_4px_0_#1c1a14]">
+              <Map />
+            </span>
+            <span className="font-display text-3xl font-black">SIGMITA</span>
+          </a>
+          <h1 className="font-display mt-12 text-4xl font-black">Masuk ke SIGMITA</h1>
+          <p className="mt-3 text-earth-dark/70">Sistem Informasi Geospasial Mitigasi Bencana</p>
+          <AuthForm mode="login" />
+          <p className="mt-8 text-center text-sm text-earth-dark/70">
+            Belum memiliki akun? <a className="font-bold text-moss" href="/register">Daftar Akun</a>
+          </p>
         </div>
-        <a className="mt-4 block text-center text-sm text-cyan-300" href="/register">Belum punya akun? Daftar</a>
       </section>
+      <aside className="hidden border-l-2 border-earth-dark/20 p-10 lg:flex lg:items-center">
+        <div className="mx-auto max-w-xl">
+          <p className="label-mono mb-72 flex items-center gap-2"><Radar size={14} /> Sistem Koordinat Aktif</p>
+          <div className="brutal-card bg-earth-light p-10">
+            <span className="absolute -ml-12 -mt-12 grid h-8 w-8 place-items-center border-2 border-earth-dark bg-moss text-earth-light">
+              <Radar size={18} />
+            </span>
+            <h2 className="font-display text-5xl font-black leading-tight">Mitigasi dimulai dari data yang bisa dipetakan.</h2>
+            <p className="font-accent mt-6 border-l-4 border-moss pl-4 text-xl leading-8 text-earth-dark/70">
+              Keakuratan informasi ruang adalah garis pertahanan pertama melawan ancaman alam.
+            </p>
+          </div>
+        </div>
+      </aside>
     </main>
   );
 }
