@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react";
 
 const phrases = [
-  "Selamatkan Bumi.",
-  "Petakan Risiko.",
   "Lindungi Wilayahmu.",
-  "Data Geospasial untuk Keputusan Nyata.",
+  "Petakan Risiko Bencana.",
+  "Peta Aktif untuk Keputusan Nyata.",
+  "Kelola Titik Mitigasi.",
   "Mitigasi Dimulai dari Peta.",
 ];
 

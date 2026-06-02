@@ -3,15 +3,15 @@
 @tailwind utilities;
 
 :root {
-  --color-earth-dark: #1c1a14;
+  --color-earth-dark: #181713;
   --color-earth-mid: #2e2b1f;
-  --color-earth-light: #f5f0e8;
-  --color-earth-paper: #ede8dc;
-  --color-moss: #3b6d11;
+  --color-earth-light: #f4eee6;
+  --color-earth-paper: #eee9df;
+  --color-moss: #2f740f;
   --color-moss-light: #c0dd97;
-  --color-hazard: #d85a30;
+  --color-hazard: #df5732;
   --color-hazard-light: #f5c4b3;
-  --color-water: #185fa5;
+  --color-water: #2269a8;
   --color-water-light: #b5d4f4;
   --color-amber-warn: #ba7517;
   --color-neutral: #888780;
@@ -57,6 +57,15 @@ a {
     radial-gradient(circle at 1px 1px, rgba(28, 26, 20, 0.08) 1px, transparent 0),
     repeating-linear-gradient(35deg, rgba(28, 26, 20, 0.035) 0 1px, transparent 1px 24px);
   background-size: 28px 28px, 120px 120px;
+}
+
+.contour-paper {
+  background-color: var(--color-earth-light);
+  background-image:
+    radial-gradient(ellipse at center, transparent 42%, rgba(28, 26, 20, 0.07) 43%, rgba(28, 26, 20, 0.07) 44%, transparent 45%),
+    radial-gradient(ellipse at center, transparent 56%, rgba(28, 26, 20, 0.05) 57%, rgba(28, 26, 20, 0.05) 58%, transparent 59%);
+  background-position: 0 0, 70px 42px;
+  background-size: 220px 150px, 260px 180px;
 }
 
 .brutal-card {
@@ -135,6 +144,110 @@ a {
 @keyframes slow-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+.earth3d {
+  position: relative;
+  width: min(72vw, 360px);
+  aspect-ratio: 1;
+  border: 2px solid var(--color-border-brutal);
+  border-radius: 50%;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 34% 28%, rgba(192, 221, 151, 0.75), transparent 18%),
+    radial-gradient(circle at 68% 42%, rgba(59, 109, 17, 0.64), transparent 25%),
+    radial-gradient(circle at 30% 70%, rgba(192, 221, 151, 0.55), transparent 18%),
+    radial-gradient(circle at 36% 32%, #6d9760 0, #315b35 42%, #102924 74%, #0d1714 100%);
+  box-shadow: 8px 8px 0 var(--color-shadow-brutal), inset -44px -38px 55px rgba(0, 0, 0, 0.34), inset 22px 20px 45px rgba(245, 240, 232, 0.18);
+  transform: rotateX(8deg) rotateY(-18deg);
+}
+
+.earth3d__shade {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 32% 28%, transparent 0 35%, rgba(8, 14, 12, 0.2) 68%, rgba(8, 10, 8, 0.56) 100%);
+  z-index: 3;
+}
+
+.earth3d__continents {
+  position: absolute;
+  inset: 0;
+  animation: globe-drift 12s ease-in-out infinite alternate;
+  transform-origin: 50% 50%;
+}
+
+.land {
+  position: absolute;
+  display: block;
+  background: rgba(59, 109, 17, 0.76);
+  filter: blur(0.5px);
+  box-shadow: inset -10px -8px 16px rgba(28, 26, 20, 0.14);
+}
+
+.land-a {
+  left: 26%;
+  top: 30%;
+  width: 30%;
+  height: 19%;
+  border-radius: 34% 40% 42% 34%;
+}
+
+.land-b {
+  right: 17%;
+  top: 41%;
+  width: 35%;
+  height: 26%;
+  border-radius: 44% 36% 40% 34%;
+}
+
+.land-c {
+  left: 36%;
+  bottom: 22%;
+  width: 25%;
+  height: 17%;
+  border-radius: 42% 38% 36% 44%;
+}
+
+.land-d {
+  right: 13%;
+  top: 16%;
+  width: 19%;
+  height: 14%;
+  border-radius: 50%;
+  background: rgba(59, 109, 17, 0.8);
+}
+
+.earth3d__marker {
+  position: absolute;
+  right: 22%;
+  top: 23%;
+  z-index: 5;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--color-border-brutal);
+  border-radius: 50%;
+  background: var(--color-hazard);
+  box-shadow: 0 0 0 10px rgba(192, 221, 151, 0.32);
+  animation: marker-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes globe-drift {
+  from {
+    transform: translateX(-10px) rotate(-2deg);
+  }
+  to {
+    transform: translateX(14px) rotate(4deg);
+  }
+}
+
+@keyframes marker-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 8px rgba(192, 221, 151, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 16px rgba(192, 221, 151, 0.08);
   }
 }
 

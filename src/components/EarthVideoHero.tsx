@@ -1,134 +1,175 @@
-import { ArrowRight, Database, Layers, Map, Radar, Route, Share2, ShieldAlert } from "lucide-react";
+import { ArrowRight, Database, Link, Map, MapPinned, Pencil, Pin, TriangleAlert } from "lucide-react";
 import { MotionReveal } from "@/components/MotionReveal";
 import { Typewriter } from "@/components/Typewriter";
 
 const features = [
   {
     title: "Pemetaan Lahan Interaktif",
-    body: "Digitasi area kerja dengan polygon, rectangle, circle, marker, dan polyline.",
-    accent: "bg-moss-light",
-    className: "md:col-span-8",
+    body: "Gambar polygon, rectangle, circle, marker, dan polyline langsung di peta.",
+    tag: "Core",
+    surfaceColor: "#171713",
+    tone: "light",
+    className: "md:col-span-7",
+    height: "min-h-[282px]",
     icon: Map,
   },
   {
-    title: "Zona Bencana",
-    body: "Tandai risiko banjir, longsor, kebakaran, hingga tsunami.",
-    accent: "bg-hazard-light",
-    className: "md:col-span-4",
-    icon: ShieldAlert,
+    title: "Zona Rawan Bencana",
+    body: "9 jenis bencana, 5 tingkat risiko.",
+    tag: "Safety",
+    surfaceColor: "#df5732",
+    tone: "light",
+    className: "md:col-span-3",
+    height: "min-h-[282px]",
+    icon: TriangleAlert,
   },
   {
-    title: "Share Project",
-    body: "Bagikan link untuk import salinan project ke akun penerima.",
-    accent: "bg-water-light",
-    className: "md:col-span-4",
-    icon: Share2,
+    title: "Share & Import",
+    body: "Bagikan project via link.",
+    tag: "",
+    surfaceColor: "#2269a8",
+    tone: "light",
+    className: "md:col-span-2",
+    height: "min-h-[282px]",
+    icon: Link,
   },
   {
     title: "Export GeoJSON",
-    body: "Keluarkan data spasial untuk analisis lanjutan dan laporan.",
-    accent: "bg-earth-paper",
+    body: "Ekspor data dalam format standar industri GIS.",
+    tag: "",
+    surfaceColor: "#f4eee6",
+    tone: "dark",
     className: "md:col-span-3",
+    height: "min-h-[318px]",
     icon: Database,
   },
   {
     title: "Digitasi Multi-Bentuk",
-    body: "Simpan geometri dan metadata fleksibel berbasis JSON.",
-    accent: "bg-earth-paper",
-    className: "md:col-span-6",
-    icon: Layers,
+    body: "Polygon, circle, rectangle, marker, polyline dalam satu drawing toolbar yang terintegrasi metadata JSON.",
+    tag: "Drawing",
+    surfaceColor: "#2f740f",
+    tone: "light",
+    className: "md:col-span-5",
+    height: "min-h-[318px]",
+    icon: Pencil,
   },
   {
     title: "Titik Mitigasi",
-    body: "Kelola posko, titik kumpul, logistik, fasilitas kesehatan, dan jalur evakuasi.",
-    accent: "bg-moss-light",
-    className: "md:col-span-3",
-    icon: Radar,
+    body: "Posko, titik kumpul, fasilitas kesehatan, gudang logistik.",
+    tag: "",
+    surfaceColor: "#eee9df",
+    tone: "dark",
+    className: "md:col-span-4",
+    height: "min-h-[318px]",
+    icon: Pin,
   },
 ];
 
-const steps = ["Buat Project", "Buka Workspace Peta", "Gambar & Segmentasi", "Tambahkan Metadata", "Export & Bagikan"];
+const steps = [
+  ["Buat Project", "Beri nama dan deskripsi wilayah pemetaan."],
+  ["Buka Workspace", "Masuk ke peta interaktif 2D berbasis Leaflet."],
+  ["Gambar & Segmentasi", "Digitasi lahan, zona bencana, dan marker."],
+  ["Isi Metadata", "Tambahkan atribut JSON pada setiap objek."],
+  ["Export & Bagikan", "Ekspor GeoJSON atau bagikan via share link."],
+];
 
 export function EarthVideoHero() {
   return (
-    <main className="page-enter topographic-paper min-h-screen text-earth-dark">
-      <nav className="glass-accent sticky top-0 z-30 border-b border-earth-dark/15 px-5 py-4">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
+    <main className="page-enter contour-paper min-h-screen text-[#181713]">
+      <nav className="sticky top-0 z-30 border-b-2 border-earth-dark bg-earth-light/88 px-5 py-4 backdrop-blur-md">
+        <div className="mx-auto flex max-w-[1216px] items-center justify-between gap-4">
           <a href="/" className="flex items-center gap-3">
-            <span className="grid h-7 w-7 place-items-center border-2 border-earth-dark bg-earth-paper shadow-[3px_3px_0_#1c1a14]">
-              <Map size={16} />
+            <span className="grid h-8 w-8 place-items-center rounded-sm bg-earth-dark text-earth-light">
+              <MapPinned size={17} />
             </span>
             <span className="font-display text-2xl font-black">SIGMITA</span>
           </a>
-          <div className="hidden items-center gap-8 text-sm md:flex">
+          <div className="hidden items-center gap-14 text-xs font-bold uppercase tracking-[0.18em] text-earth-dark/55 md:flex">
             <a href="#fitur">Fitur</a>
             <a href="#cara-kerja">Cara Kerja</a>
             <a href="#tentang">Tentang</a>
           </div>
           <div className="flex items-center gap-3">
-            <a className="hidden text-sm font-semibold uppercase md:inline" href="/login">
+            <a className="hidden text-xs font-bold uppercase tracking-[0.12em] md:inline" href="/login">
               Masuk
             </a>
-            <a className="brutal-button bg-earth-dark px-4 py-3 text-earth-light" href="/register">
+            <a className="brutal-button bg-earth-dark px-7 py-3 text-earth-light" href="/register">
               Daftar
             </a>
           </div>
         </div>
       </nav>
 
-      <section className="relative mx-auto grid min-h-[calc(100dvh-76px)] max-w-7xl items-center gap-10 px-5 py-12 md:grid-cols-[1fr_0.95fr]">
+      <section className="relative mx-auto grid min-h-[560px] max-w-[1216px] items-center gap-8 px-5 py-12 md:grid-cols-[1fr_0.92fr] md:py-16">
         <div className="relative z-10">
-          <span className="brutal-card inline-flex items-center gap-2 px-3 py-2 text-xs uppercase tracking-[0.08em]">
-            <Route size={14} /> Platform WebGIS Terdepan
+          <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-earth-dark/55">
+            <span className="h-px w-9 bg-moss" /> Platform WebGIS Mitigasi Bencana
           </span>
-          <div className="mt-10 h-16 border-l-2 border-earth-dark" />
-          <h1 className="font-display max-w-3xl text-5xl font-black leading-[1.02] text-earth-dark md:text-7xl">
+          <h1 className="font-display mt-8 max-w-3xl text-5xl font-black leading-[1.02] text-earth-dark md:text-7xl">
             <Typewriter />
           </h1>
-          <p className="font-accent mt-6 max-w-2xl text-xl leading-8 text-earth-dark/70">
-            Platform WebGIS untuk pemetaan lahan, identifikasi zona rawan bencana, dan pengelolaan titik mitigasi.
+          <p className="font-accent mt-12 max-w-xl text-xl leading-9 text-earth-dark/62">
+            Platform pemetaan lahan, identifikasi zona rawan bencana, dan pengelolaan titik mitigasi dalam satu peta interaktif.
           </p>
-          <div className="mt-8 flex flex-wrap gap-4">
-            <a className="brutal-button bg-moss px-6 py-4 text-earth-light" href="/register">
+          <div className="mt-9 flex flex-wrap gap-5">
+            <a className="brutal-button min-w-60 bg-earth-dark px-7 py-4 text-earth-light" href="/register">
               Mulai Pemetaan <ArrowRight size={18} />
             </a>
-            <a className="brutal-button bg-earth-light px-6 py-4" href="#fitur">
+            <a className="brutal-button min-w-48 bg-earth-light px-7 py-4 text-earth-dark" href="#fitur">
               Lihat Demo
             </a>
           </div>
         </div>
 
-        <div className="brutal-card relative mx-auto aspect-square w-full max-w-[520px] overflow-hidden bg-[#dfddd5]">
-          <div className="absolute inset-0 opacity-40 [background-image:radial-gradient(circle_at_1px_1px,rgba(28,26,20,.18)_1px,transparent_0)] [background-size:24px_24px]" />
-          <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full border-[18px] border-earth-dark/55">
-            <div className="absolute inset-6 rounded-full bg-moss-light/55" style={{ animation: "slow-spin 40s linear infinite" }}>
-              <span className="absolute left-8 top-8 h-16 w-28 rounded-[40%] bg-earth-dark/45" />
-              <span className="absolute bottom-8 right-6 h-20 w-24 rounded-[45%] bg-earth-dark/45" />
-              <span className="absolute bottom-14 left-9 h-14 w-14 rounded-[35%] bg-earth-dark/45" />
+        <div className="relative mx-auto flex aspect-square w-full max-w-[430px] items-center justify-center">
+          <div className="earth3d" aria-hidden="true">
+            <div className="earth3d__shade" />
+            <div className="earth3d__continents">
+              <span className="land land-a" />
+              <span className="land land-b" />
+              <span className="land land-c" />
+              <span className="land land-d" />
             </div>
+            <span className="earth3d__marker" />
+          </div>
+          <div className="brutal-button absolute bottom-10 right-6 bg-hazard px-5 py-3 text-earth-light shadow-[4px_4px_0_#1c1a14]">
+            <span className="h-3 w-3 rounded-full bg-water-light" /> Peta Aktif
           </div>
         </div>
       </section>
 
-      <div className="border-y border-earth-dark/20 py-4 text-center text-xs uppercase tracking-[0.08em]" style={{ animation: "float-y 2.4s ease-in-out infinite" }}>
-        Scroll untuk jelajahi
+      <div className="border-y-2 border-earth-dark py-5 text-center text-xs uppercase tracking-[0.2em] text-earth-dark/50">
+        ↓ Jelajahi Fitur
       </div>
 
-      <section id="fitur" className="mx-auto max-w-7xl px-5 py-20">
+      <section id="fitur" className="mx-auto max-w-[1216px] px-5 py-16 md:py-20">
         <MotionReveal>
-          <h2 className="font-display max-w-2xl text-5xl font-black leading-tight">Satu Platform. Semua yang Kamu Butuhkan.</h2>
+          <p className="mb-5 inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-earth-dark/55">
+            <span className="h-0.5 w-8 bg-earth-dark" /> Fitur Utama
+          </p>
+          <h2 className="font-display max-w-2xl text-4xl font-black leading-tight md:text-5xl">Satu Platform. Semua yang Kamu Butuhkan.</h2>
         </MotionReveal>
-        <div className="mt-10 grid grid-cols-1 gap-6 md:grid-cols-12">
+        <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-12 md:items-stretch">
           {features.map((feature, index) => {
             const Icon = feature.icon;
+            const isLightText = feature.tone === "light";
             return (
               <MotionReveal key={feature.title} delay={index * 0.05} className={feature.className}>
-                <article className={`brutal-card brutal-card-hover min-h-44 p-6 ${feature.accent}`}>
+                <article
+                  className={`brutal-card brutal-card-hover relative overflow-hidden p-8 ${feature.height} ${isLightText ? "text-[#f4eee6]" : "text-[#181713]"}`}
+                  style={{ backgroundColor: feature.surfaceColor }}
+                >
                   <div className="flex items-start justify-between gap-4">
-                    <h3 className="label-mono max-w-xs">{feature.title}</h3>
-                    <Icon size={42} strokeWidth={1.7} />
+                    <Icon size={38} strokeWidth={1.75} className={isLightText ? "text-[#f4eee6]" : "text-[#181713]"} />
+                    {feature.tag ? (
+                      <span className={`rounded-sm border px-3 py-1 text-[10px] font-bold uppercase tracking-[0.12em] ${isLightText ? "border-[#f4eee6]/60 text-[#f4eee6]/80" : "border-[#181713]/60 text-[#181713]/70"}`}>
+                        {feature.tag}
+                      </span>
+                    ) : null}
                   </div>
-                  <p className="mt-8 max-w-xl leading-7 text-earth-dark/70">{feature.body}</p>
+                  <h3 className={`label-mono mt-9 max-w-xs ${isLightText ? "text-[#f4eee6]" : "text-[#181713]"}`}>{feature.title}</h3>
+                  <p className={`mt-4 max-w-xl text-[0.92rem] leading-7 ${isLightText ? "text-[#f4eee6]/80" : "text-[#181713]/70"}`}>{feature.body}</p>
+                  {feature.title === "Pemetaan Lahan Interaktif" ? <div className="absolute bottom-8 right-10 h-24 w-44 rotate-[-12deg] border-2 border-[#f4eee6]/28" /> : null}
                 </article>
               </MotionReveal>
             );
@@ -136,27 +177,33 @@ export function EarthVideoHero() {
         </div>
       </section>
 
-      <section id="cara-kerja" className="mx-auto max-w-7xl px-5 py-20">
-        <MotionReveal>
-          <h2 className="font-display text-4xl font-black">Cara Kerja</h2>
-        </MotionReveal>
-        <div className="mt-10 grid gap-5 md:grid-cols-5">
-          {steps.map((step, index) => (
-            <MotionReveal key={step} delay={index * 0.12}>
-              <div className="brutal-card min-h-36 p-5">
-                <span className="label-mono text-moss">0{index + 1}</span>
-                <p className="font-display mt-6 text-2xl font-black leading-tight">{step}</p>
-              </div>
-            </MotionReveal>
-          ))}
+      <section id="cara-kerja" className="border-t-2 border-earth-dark px-5 py-16 md:py-20">
+        <div className="mx-auto max-w-[1216px]">
+          <MotionReveal>
+            <p className="mb-5 inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-earth-dark/55">
+              <span className="h-0.5 w-8 bg-earth-dark" /> Cara Kerja
+            </p>
+            <h2 className="font-display text-4xl font-black">Lima Langkah Sederhana</h2>
+          </MotionReveal>
+          <div className="mt-12 grid gap-8 md:grid-cols-5">
+            {steps.map(([step, body], index) => (
+              <MotionReveal key={step} delay={index * 0.12}>
+                <div className="border-l border-earth-dark/15 pl-5">
+                  <span className="font-display text-5xl font-black text-earth-dark/10">0{index + 1}</span>
+                  <p className="label-mono mt-4">{step}</p>
+                  <p className="mt-3 text-sm leading-6 text-earth-dark/55">{body}</p>
+                </div>
+              </MotionReveal>
+            ))}
+          </div>
         </div>
       </section>
 
-      <section id="tentang" className="bg-earth-dark px-5 py-20 text-earth-light">
-        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 md:flex-row md:items-end">
-          <h2 className="font-display max-w-3xl text-5xl font-black leading-tight">Mulai pemetaan wilayahmu hari ini.</h2>
-          <a className="brutal-button border-earth-light bg-moss px-7 py-4 text-earth-light shadow-[4px_4px_0_rgba(245,240,232,.7)]" href="/register">
-            Buat Project <ArrowRight size={18} />
+      <section id="tentang" className="bg-earth-dark px-5 py-16 text-earth-light">
+        <div className="mx-auto flex max-w-[1216px] flex-col items-start justify-between gap-8 md:flex-row md:items-center">
+          <h2 className="font-display max-w-2xl text-4xl font-black leading-tight">Mulai pemetaan wilayahmu <span className="font-accent text-moss-light">hari ini.</span></h2>
+          <a className="brutal-button border-earth-paper bg-earth-mid px-9 py-5 text-earth-light shadow-[4px_4px_0_rgba(245,240,232,.38)]" href="/register">
+            Daftar Gratis <ArrowRight size={18} />
           </a>
         </div>
       </section>
