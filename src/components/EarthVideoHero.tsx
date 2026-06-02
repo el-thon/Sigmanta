@@ -1,6 +1,8 @@
 import { ArrowRight, Database, Link, Map, MapPinned, Pencil, Pin, TriangleAlert } from "lucide-react";
+import { EarthGlobe3D } from "@/components/EarthGlobe3D";
 import { MotionReveal } from "@/components/MotionReveal";
 import { Typewriter } from "@/components/Typewriter";
+import type { AuthUser } from "@/lib/auth";
 
 const features = [
   {
@@ -73,7 +75,35 @@ const steps = [
   ["Export & Bagikan", "Ekspor GeoJSON atau bagikan via share link."],
 ];
 
-export function EarthVideoHero() {
+const projectOutputs = [
+  {
+    title: "Peta Interaktif",
+    body: "Visualisasi wilayah kerja berisi segmentasi lahan, zona rawan bencana, marker fasilitas, titik mitigasi, dan jalur evakuasi.",
+    icon: Map,
+  },
+  {
+    title: "Data GeoJSON",
+    body: "Output spasial standar yang dapat dipakai ulang untuk analisis GIS, dokumentasi teknis, dan pertukaran data lintas sistem.",
+    icon: Database,
+  },
+  {
+    title: "Rekap Risiko",
+    body: "Ringkasan objek, kategori, luas area, level risiko, dan metadata lapangan untuk membantu prioritas mitigasi.",
+    icon: TriangleAlert,
+  },
+];
+
+const targetUsers = [
+  "Tim mitigasi bencana",
+  "Perencana wilayah",
+  "Petugas lapangan",
+  "Instansi pemerintah atau kampus",
+];
+
+export function EarthVideoHero({ currentUser }: { currentUser?: AuthUser | null }) {
+  const primaryHref = currentUser ? "/dashboard" : "/register";
+  const primaryLabel = currentUser ? "Buka Dashboard" : "Mulai Pemetaan";
+
   return (
     <main className="page-enter contour-paper min-h-screen text-[#181713]">
       <nav className="sticky top-0 z-30 border-b-2 border-earth-dark bg-earth-light/88 px-5 py-4 backdrop-blur-md">
@@ -89,19 +119,25 @@ export function EarthVideoHero() {
             <a href="#cara-kerja">Cara Kerja</a>
             <a href="#tentang">Tentang</a>
           </div>
-          <div className="flex items-center gap-3">
-            <a className="hidden text-xs font-bold uppercase tracking-[0.12em] md:inline" href="/login">
-              Masuk
+          {currentUser ? (
+            <a className="brutal-button bg-earth-dark px-7 py-3 text-earth-light" href="/dashboard">
+              Dashboard
             </a>
-            <a className="brutal-button bg-earth-dark px-7 py-3 text-earth-light" href="/register">
-              Daftar
-            </a>
-          </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <a className="hidden text-xs font-bold uppercase tracking-[0.12em] md:inline" href="/login">
+                Masuk
+              </a>
+              <a className="brutal-button bg-earth-dark px-7 py-3 text-earth-light" href="/register">
+                Daftar
+              </a>
+            </div>
+          )}
         </div>
       </nav>
 
-      <section className="relative mx-auto grid min-h-[560px] max-w-[1216px] items-center gap-8 px-5 py-12 md:grid-cols-[1fr_0.92fr] md:py-16">
-        <div className="relative z-10">
+      <section className="relative mx-auto grid min-h-[560px] max-w-[1320px] items-center overflow-visible md:grid-cols-[0.94fr_1.06fr]">
+        <div className="relative z-10 px-5 py-12 md:py-16">
           <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-earth-dark/55">
             <span className="h-px w-9 bg-moss" /> Platform WebGIS Mitigasi Bencana
           </span>
@@ -112,8 +148,8 @@ export function EarthVideoHero() {
             Platform pemetaan lahan, identifikasi zona rawan bencana, dan pengelolaan titik mitigasi dalam satu peta interaktif.
           </p>
           <div className="mt-9 flex flex-wrap gap-5">
-            <a className="brutal-button min-w-60 bg-earth-dark px-7 py-4 text-earth-light" href="/register">
-              Mulai Pemetaan <ArrowRight size={18} />
+            <a className="brutal-button min-w-60 bg-earth-dark px-7 py-4 text-earth-light" href={primaryHref}>
+              {primaryLabel} <ArrowRight size={18} />
             </a>
             <a className="brutal-button min-w-48 bg-earth-light px-7 py-4 text-earth-dark" href="#fitur">
               Lihat Demo
@@ -121,20 +157,8 @@ export function EarthVideoHero() {
           </div>
         </div>
 
-        <div className="relative mx-auto flex aspect-square w-full max-w-[430px] items-center justify-center">
-          <div className="earth3d" aria-hidden="true">
-            <div className="earth3d__shade" />
-            <div className="earth3d__continents">
-              <span className="land land-a" />
-              <span className="land land-b" />
-              <span className="land land-c" />
-              <span className="land land-d" />
-            </div>
-            <span className="earth3d__marker" />
-          </div>
-          <div className="brutal-button absolute bottom-10 right-6 bg-hazard px-5 py-3 text-earth-light shadow-[4px_4px_0_#1c1a14]">
-            <span className="h-3 w-3 rounded-full bg-water-light" /> Peta Aktif
-          </div>
+        <div className="relative flex min-h-[390px] w-full items-center justify-center overflow-visible px-5 md:min-h-[620px]">
+          <EarthGlobe3D />
         </div>
       </section>
 
@@ -199,12 +223,73 @@ export function EarthVideoHero() {
         </div>
       </section>
 
-      <section id="tentang" className="bg-earth-dark px-5 py-16 text-earth-light">
-        <div className="mx-auto flex max-w-[1216px] flex-col items-start justify-between gap-8 md:flex-row md:items-center">
-          <h2 className="font-display max-w-2xl text-4xl font-black leading-tight">Mulai pemetaan wilayahmu <span className="font-accent text-moss-light">hari ini.</span></h2>
-          <a className="brutal-button border-earth-paper bg-earth-mid px-9 py-5 text-earth-light shadow-[4px_4px_0_rgba(245,240,232,.38)]" href="/register">
-            Daftar Gratis <ArrowRight size={18} />
-          </a>
+      <section id="tentang" className="bg-earth-dark px-5 py-16 text-earth-light md:py-20">
+        <div className="mx-auto max-w-[1216px]">
+          <MotionReveal>
+            <p className="mb-5 inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-earth-light/55">
+              <span className="h-0.5 w-8 bg-moss-light" /> Tentang SIGMITA
+            </p>
+            <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+              <div>
+                <h2 className="font-display max-w-2xl text-4xl font-black leading-tight md:text-5xl">
+                  Sistem informasi geospasial untuk memahami wilayah sebelum mengambil keputusan mitigasi.
+                </h2>
+                <p className="mt-6 max-w-2xl text-base leading-8 text-earth-light/70">
+                  SIGMITA membantu pengguna membuat project pemetaan berbasis wilayah. Setiap project dapat berisi batas lahan, zona risiko bencana,
+                  fasilitas penting, titik kumpul, posko, gudang logistik, dan jalur evakuasi yang tersimpan sebagai data spasial terstruktur.
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="border-2 border-earth-paper bg-earth-light p-5 text-earth-dark">
+                  <p className="label-mono text-earth-dark/55">Digunakan Untuk</p>
+                  <p className="mt-4 text-sm leading-7 text-earth-dark/75">
+                    Menyusun basis data wilayah, melihat sebaran risiko, menandai sumber daya mitigasi, dan membagikan salinan project tanpa mengubah data asli.
+                  </p>
+                </div>
+                <div className="border-2 border-earth-paper bg-moss-light p-5 text-earth-dark">
+                  <p className="label-mono text-earth-dark/55">Pengguna Utama</p>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {targetUsers.map((user) => (
+                      <span key={user} className="border border-earth-dark/30 bg-earth-light px-2 py-1 text-[11px] font-bold uppercase">
+                        {user}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </MotionReveal>
+
+          <div className="mt-12 grid gap-4 md:grid-cols-3">
+            {projectOutputs.map((output, index) => {
+              const Icon = output.icon;
+              return (
+                <MotionReveal key={output.title} delay={index * 0.08}>
+                  <article className="min-h-[238px] border-2 border-earth-paper bg-earth-mid p-6">
+                    <Icon size={34} className="text-moss-light" />
+                    <p className="label-mono mt-7 text-earth-light/60">Output {index + 1}</p>
+                    <h3 className="font-display mt-3 text-2xl font-black">{output.title}</h3>
+                    <p className="mt-4 text-sm leading-7 text-earth-light/68">{output.body}</p>
+                  </article>
+                </MotionReveal>
+              );
+            })}
+          </div>
+
+          <MotionReveal className="mt-12">
+            <div className="flex flex-col items-start justify-between gap-6 border-t-2 border-earth-light/20 pt-8 md:flex-row md:items-center">
+              <div>
+                <p className="label-mono text-earth-light/50">Nilai Utama</p>
+                <p className="mt-3 max-w-3xl text-lg leading-8 text-earth-light/78">
+                  Output SIGMITA dipakai sebagai bahan koordinasi, dokumentasi wilayah, dasar prioritas mitigasi, dan arsip project yang dapat diekspor atau disalin ke akun lain.
+                </p>
+              </div>
+              <a className="brutal-button shrink-0 border-earth-paper bg-earth-light px-9 py-5 text-earth-dark shadow-[4px_4px_0_rgba(245,240,232,.38)]" href={primaryHref}>
+                {currentUser ? "Buka Dashboard" : "Daftar Gratis"} <ArrowRight size={18} />
+              </a>
+            </div>
+          </MotionReveal>
         </div>
       </section>
     </main>

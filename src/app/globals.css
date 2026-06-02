@@ -147,6 +147,55 @@ a {
   }
 }
 
+.earth-globe-3d {
+  position: relative;
+  width: min(86vw, 540px);
+  aspect-ratio: 1;
+  margin: auto;
+  overflow: hidden;
+  border-radius: 50%;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  background: #102a3a;
+  box-shadow:
+    0 30px 58px rgba(28, 26, 20, 0.34),
+    inset -54px -36px 82px rgba(0, 0, 0, 0.5),
+    inset 18px 18px 34px rgba(245, 240, 232, 0.22);
+  transform: perspective(900px) rotateX(var(--earth-tilt-x, 0deg)) rotateY(var(--earth-tilt-y, 0deg)) rotate(-7deg);
+  transition: box-shadow 160ms ease;
+}
+
+.earth-globe-3d:active {
+  cursor: grabbing;
+  box-shadow:
+    0 24px 44px rgba(28, 26, 20, 0.32),
+    inset -54px -36px 82px rgba(0, 0, 0, 0.5),
+    inset 18px 18px 34px rgba(245, 240, 232, 0.22);
+}
+
+.earth-globe-3d__map {
+  position: absolute;
+  inset: -1%;
+  border-radius: inherit;
+  background-image: url("/assets/earth/earth-albedo.jpg");
+  background-position: calc(18% + var(--earth-offset, 0px)) 50%;
+  background-repeat: repeat-x;
+  background-size: auto 100%;
+  transform: scale(1.03);
+  will-change: background-position;
+}
+
+.earth-globe-3d__shade {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(255, 255, 255, 0.34), transparent 0 18%),
+    radial-gradient(circle at 36% 33%, transparent 0 35%, rgba(8, 16, 24, 0.18) 58%, rgba(4, 8, 12, 0.72) 100%),
+    linear-gradient(118deg, rgba(255, 255, 255, 0.16), transparent 32%, rgba(0, 0, 0, 0.34) 78%);
+}
+
 .earth3d {
   position: relative;
   width: min(72vw, 360px);

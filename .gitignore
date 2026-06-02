@@ -10,3 +10,4 @@ coverage
 *.log
 *.tsbuildinfo
 prisma/dev.db
+59-earth.zip
