@@ -1,0 +1,40 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: sigmanta-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: sigmanta
+      POSTGRES_PASSWORD: sigmanta
+      POSTGRES_DB: sigmanta
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sigmanta -d sigmanta"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    image: node:22-alpine
+    container_name: sigmanta-app
+    working_dir: /app
+    command: sh -c "npm install && npx prisma generate && npm run dev"
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://sigmanta:sigmanta@db:5432/sigmanta?schema=public
+      JWT_SECRET: change-this-secret-in-production
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  node_modules:
