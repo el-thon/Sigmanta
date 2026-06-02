@@ -1,16 +1,16 @@
 import { BarChart3, CircleHelp, FolderOpen, Layers, LogOut, Map, Plus, Settings } from "lucide-react";
 
 type DashboardSidebarProps = {
-  active?: "dashboard" | "projects" | "map";
+  active?: "dashboard" | "projects" | "map" | "records" | "reports" | "settings" | "help";
   projectName?: string;
 };
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: BarChart3, key: "dashboard" },
-  { label: "Map Workspace", href: "/projects", icon: Map, key: "map" },
-  { label: "Land Records", href: "/projects", icon: Layers, key: "projects" },
-  { label: "Risk Reports", href: "/dashboard", icon: BarChart3, key: "reports" },
-  { label: "Settings", href: "/dashboard", icon: Settings, key: "settings" },
+  { label: "Map Workspace", href: "/workspace", icon: Map, key: "map" },
+  { label: "Land Records", href: "/land-records", icon: Layers, key: "records" },
+  { label: "Risk Reports", href: "/risk-reports", icon: BarChart3, key: "reports" },
+  { label: "Settings", href: "/settings", icon: Settings, key: "settings" },
 ];
 
 export function DashboardSidebar({ active = "dashboard", projectName = "Project Alpha" }: DashboardSidebarProps) {
@@ -50,7 +50,7 @@ export function DashboardSidebar({ active = "dashboard", projectName = "Project 
         <a className="brutal-button w-full bg-earth-dark px-4 py-4 text-earth-light" href="/projects/create">
           <Plus size={17} /> New Analysis
         </a>
-        <a className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.06em] text-earth-dark/70" href="#">
+        <a className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.06em] text-earth-dark/70" href="/help">
           <CircleHelp size={18} /> Help Center
         </a>
         <form action="/api/auth/logout" method="post">
