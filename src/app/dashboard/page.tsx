@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserRecord } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import { AlertTriangle, Download, FolderOpen, MapPin, Plus, Search, SlidersHorizontal } from "lucide-react";
@@ -6,7 +6,7 @@ import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { MotionReveal } from "@/components/MotionReveal";
 
 export default async function DashboardPage() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserRecord();
   if (!user) redirect("/login");
 
   const projects = await prisma.mappingProject.findMany({
@@ -18,7 +18,7 @@ export default async function DashboardPage() {
   return (
     <main className="page-enter flex min-h-screen bg-earth-light text-earth-dark">
       <div className="hidden md:block">
-        <DashboardSidebar active="dashboard" projectName={user.name} />
+        <DashboardSidebar active="dashboard" projectName={user.name} userEmail={user.email} userInstitution={user.institution} userRole={user.role} avatarUrl={user.avatarUrl} />
       </div>
       <section className="topographic-paper flex-1 px-6 py-10 md:px-10">
         <div className="mx-auto max-w-7xl">

@@ -1,11 +1,11 @@
 import { DashboardSidebar } from "@/components/DashboardSidebar";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserRecord } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { AlertTriangle, BarChart3, Download, MapPin } from "lucide-react";
 import { redirect } from "next/navigation";
 
 export default async function RiskReportsPage({ searchParams }: { searchParams: Promise<{ project?: string }> }) {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserRecord();
   if (!user) redirect("/login");
 
   const { project } = await searchParams;
@@ -46,7 +46,7 @@ export default async function RiskReportsPage({ searchParams }: { searchParams: 
   return (
     <main className="page-enter flex min-h-screen bg-earth-light text-earth-dark">
       <div className="hidden md:block">
-        <DashboardSidebar active="reports" projectName={user.name} />
+        <DashboardSidebar active="reports" projectName={user.name} userEmail={user.email} userInstitution={user.institution} userRole={user.role} avatarUrl={user.avatarUrl} />
       </div>
       <section className="topographic-paper flex-1 px-6 py-10 md:px-10">
         <div className="mx-auto max-w-7xl">

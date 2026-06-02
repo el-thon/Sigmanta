@@ -1,5 +1,5 @@
 import { DashboardSidebar } from "@/components/DashboardSidebar";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUserRecord } from "@/lib/auth";
 import { CircleHelp, Hexagon, MapPin, Route, Square } from "lucide-react";
 import { redirect } from "next/navigation";
 
@@ -11,13 +11,13 @@ const guides = [
 ];
 
 export default async function HelpPage() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserRecord();
   if (!user) redirect("/login");
 
   return (
     <main className="page-enter flex min-h-screen bg-earth-light text-earth-dark">
       <div className="hidden md:block">
-        <DashboardSidebar active="help" projectName={user.name} />
+        <DashboardSidebar active="help" projectName={user.name} userEmail={user.email} userInstitution={user.institution} userRole={user.role} avatarUrl={user.avatarUrl} />
       </div>
       <section className="topographic-paper flex-1 px-6 py-10 md:px-10">
         <div className="mx-auto max-w-5xl">

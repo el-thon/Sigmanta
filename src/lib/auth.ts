@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
+import { prisma } from "@/lib/prisma";
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET ?? "dev-secret");
 const cookieName = "sigmita_token";
@@ -32,6 +33,15 @@ export async function verifyToken(token?: string | null): Promise<AuthUser | nul
 export async function getCurrentUser() {
   const store = await cookies();
   return verifyToken(store.get(cookieName)?.value);
+}
+
+export async function getCurrentUserRecord() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  return prisma.user.findUnique({
+    where: { id: user.id },
+  });
 }
 
 export async function setAuthCookie(token: string) {

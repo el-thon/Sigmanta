@@ -64,20 +64,26 @@ enum ExportType {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(100)
-  email     String   @unique @db.VarChar(100)
-  password  String   @db.VarChar(255)
-  role      UserRole @default(user)
-  avatarUrl String?  @map("avatar_url") @db.VarChar(255)
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(100)
+  email       String   @unique @db.VarChar(100)
+  password    String   @db.VarChar(255)
+  role        UserRole @default(user)
+  phone       String?  @db.VarChar(30)
+  address     String?
+  institution String?  @db.VarChar(150)
+  occupation  String?  @db.VarChar(120)
+  age         Int?
+  bio         String?
+  avatarUrl   String?  @map("avatar_url") @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
-  projects       MappingProject[] @relation("ProjectOwner")
-  mapObjects     MapObject[]      @relation("ObjectCreator")
-  updatedObjects MapObject[]      @relation("ObjectUpdater")
+  projects       MappingProject[]   @relation("ProjectOwner")
+  mapObjects     MapObject[]        @relation("ObjectCreator")
+  updatedObjects MapObject[]        @relation("ObjectUpdater")
   shareLinks     ProjectShareLink[]
-  imports        ProjectImport[]  @relation("ProjectImporter")
+  imports        ProjectImport[]    @relation("ProjectImporter")
   exports        MapExport[]
   activityLogs   ActivityLog[]
 
@@ -85,60 +91,60 @@ model User {
 }
 
 model MappingProject {
-  id           Int           @id @default(autoincrement())
-  ownerId      Int           @map("owner_id")
-  sourceProjectId Int?       @map("source_project_id")
-  name         String        @db.VarChar(150)
-  slug         String        @db.VarChar(180)
-  description  String?
-  locationName String?       @map("location_name") @db.VarChar(150)
-  centerLat    Decimal?      @map("center_lat") @db.Decimal(10, 8)
-  centerLng    Decimal?      @map("center_lng") @db.Decimal(11, 8)
-  defaultZoom  Int           @default(13) @map("default_zoom")
-  status       ProjectStatus @default(draft)
-  viewConfig   Json?         @map("view_config")
-  createdAt    DateTime      @default(now()) @map("created_at")
-  updatedAt    DateTime      @updatedAt @map("updated_at")
+  id              Int           @id @default(autoincrement())
+  ownerId         Int           @map("owner_id")
+  sourceProjectId Int?          @map("source_project_id")
+  name            String        @db.VarChar(150)
+  slug            String        @db.VarChar(180)
+  description     String?
+  locationName    String?       @map("location_name") @db.VarChar(150)
+  centerLat       Decimal?      @map("center_lat") @db.Decimal(10, 8)
+  centerLng       Decimal?      @map("center_lng") @db.Decimal(11, 8)
+  defaultZoom     Int           @default(13) @map("default_zoom")
+  status          ProjectStatus @default(draft)
+  viewConfig      Json?         @map("view_config")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
 
-  owner         User             @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  sourceProject MappingProject?  @relation("ProjectClone", fields: [sourceProjectId], references: [id])
-  clonedProjects MappingProject[] @relation("ProjectClone")
-  layers        ProjectLayer[]
-  shareLinks    ProjectShareLink[]
-  importsSource ProjectImport[]   @relation("ImportSource")
-  importsTarget ProjectImport[]   @relation("ImportTarget")
-  objects       MapObject[]
-  exports       MapExport[]
-  activityLogs  ActivityLog[]
+  owner          User               @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  sourceProject  MappingProject?    @relation("ProjectClone", fields: [sourceProjectId], references: [id])
+  clonedProjects MappingProject[]   @relation("ProjectClone")
+  layers         ProjectLayer[]
+  shareLinks     ProjectShareLink[]
+  importsSource  ProjectImport[]    @relation("ImportSource")
+  importsTarget  ProjectImport[]    @relation("ImportTarget")
+  objects        MapObject[]
+  exports        MapExport[]
+  activityLogs   ActivityLog[]
 
   @@unique([ownerId, slug])
   @@map("mapping_projects")
 }
 
 model ProjectShareLink {
-  id        Int      @id @default(autoincrement())
-  projectId Int      @map("project_id")
-  createdBy Int      @map("created_by")
-  token     String   @unique @db.VarChar(255)
-  isActive  Boolean  @default(true) @map("is_active")
+  id        Int       @id @default(autoincrement())
+  projectId Int       @map("project_id")
+  createdBy Int       @map("created_by")
+  token     String    @unique @db.VarChar(255)
+  isActive  Boolean   @default(true) @map("is_active")
   expiresAt DateTime? @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
 
-  project MappingProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  creator User           @relation(fields: [createdBy], references: [id])
+  project MappingProject  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator User            @relation(fields: [createdBy], references: [id])
   imports ProjectImport[]
 
   @@map("project_share_links")
 }
 
 model ProjectImport {
-  id              Int      @id @default(autoincrement())
-  shareLinkId     Int      @map("share_link_id")
-  sourceProjectId Int      @map("source_project_id")
-  importedProjectId Int    @map("imported_project_id")
-  importedBy      Int      @map("imported_by")
-  createdAt       DateTime @default(now()) @map("created_at")
+  id                Int      @id @default(autoincrement())
+  shareLinkId       Int      @map("share_link_id")
+  sourceProjectId   Int      @map("source_project_id")
+  importedProjectId Int      @map("imported_project_id")
+  importedBy        Int      @map("imported_by")
+  createdAt         DateTime @default(now()) @map("created_at")
 
   shareLink       ProjectShareLink @relation(fields: [shareLinkId], references: [id])
   sourceProject   MappingProject   @relation("ImportSource", fields: [sourceProjectId], references: [id])
