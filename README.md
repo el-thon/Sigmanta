@@ -6,11 +6,11 @@ SIGMITA adalah platform WebGIS yang mengintegrasikan pemetaan lahan, identifikas
 
 - Frontend + Backend: Next.js + TypeScript
 - Peta 2D: Leaflet, React Leaflet, Leaflet Draw
-- Hero 3D Earth: video 3D Earth overlay text dan animasi UI
-- Database: PostgreSQL + PostGIS
+- Hero 3D Earth: CSS globe, typewriter text, dan animasi UI
 - ORM: Prisma
 - Auth: custom JWT berbasis cookie HTTP-only
-- Storage: Supabase Storage / S3-compatible storage
+- Database: Supabase PostgreSQL atau PostgreSQL lokal
+- Storage: local filesystem (`public/uploads`)
 - Deployment: Vercel + Supabase
 
 ## Cara Menjalankan dengan Docker
@@ -33,19 +33,16 @@ Akses aplikasi di:
 http://localhost:3000
 ```
 
-## Catatan Video Hero
+## Konfigurasi Supabase Database dan Local Storage
 
-Landing page menggunakan video sebagai elemen 3D Earth. Letakkan file video di:
-
-```bash
-public/videos/earth-hero.mp4
-```
-
-Atau ubah URL video melalui env:
+Gunakan Supabase hanya untuk database PostgreSQL melalui `DATABASE_URL`. Storage disimpan lokal di filesystem project/server:
 
 ```bash
-NEXT_PUBLIC_EARTH_VIDEO_URL="/videos/earth-hero.mp4"
+LOCAL_STORAGE_DIR="public/uploads"
+NEXT_PUBLIC_LOCAL_STORAGE_URL="/uploads"
 ```
+
+Catatan deployment: local storage cocok untuk development atau server dengan disk persisten. Jika deploy ke platform serverless, file upload lokal dapat hilang saat instance diganti.
 
 ## Struktur Awal
 

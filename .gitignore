@@ -8,4 +8,5 @@ out
 coverage
 .vercel
 *.log
+*.tsbuildinfo
 prisma/dev.db
