@@ -51,7 +51,7 @@ export default async function ProjectMapPage({ params }: { params: Promise<{ id:
       <header className="topographic-paper flex h-[66px] items-center justify-between border-b-2 border-earth-dark px-5">
         <div className="flex items-center gap-8">
           <a href="/dashboard" className="font-display flex items-center gap-2 text-2xl font-black">
-            <ArrowLeft size={20} /> SIGMITA GIS
+            <ArrowLeft size={20} /> SIGMANTA GIS
           </a>
           <nav className="hidden items-center gap-8 text-sm text-earth-dark/75 md:flex">
             <a href="/dashboard">Global Risks</a>

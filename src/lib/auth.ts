@@ -3,7 +3,7 @@ import { SignJWT, jwtVerify } from "jose";
 import { prisma } from "@/lib/prisma";
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET ?? "dev-secret");
-const cookieName = "sigmita_token";
+const cookieName = "sigmanta_token";
 
 export type AuthUser = {
   id: number;

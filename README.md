@@ -1,6 +1,6 @@
-# SIGMITA
+# SIGMANTA
 
-SIGMITA adalah platform WebGIS yang mengintegrasikan pemetaan lahan, identifikasi zona rawan bencana, dan pengelolaan titik mitigasi dalam satu peta interaktif. Sistem ini membantu pengguna memahami kondisi wilayah melalui segmentasi area, analisis risiko, serta visualisasi fasilitas mitigasi sehingga mendukung pengambilan keputusan berbasis informasi geospasial.
+SIGMANTA adalah platform WebGIS yang mengintegrasikan pemetaan lahan, identifikasi zona rawan bencana, dan pengelolaan titik mitigasi dalam satu peta interaktif. Sistem ini membantu pengguna memahami kondisi wilayah melalui segmentasi area, analisis risiko, serta visualisasi fasilitas mitigasi sehingga mendukung pengambilan keputusan berbasis informasi geospasial.
 
 ## Tech Stack
 
@@ -55,4 +55,4 @@ Catatan deployment: local storage cocok untuk development atau server dengan dis
 
 ## Mode Share Project
 
-SIGMITA tidak menggunakan kolaborasi realtime. Share link digunakan untuk mengimpor atau menyalin project ke akun personal penerima. Project asli tetap aman dan tidak berubah.
+SIGMANTA tidak menggunakan kolaborasi realtime. Share link digunakan untuk mengimpor atau menyalin project ke akun personal penerima. Project asli tetap aman dan tidak berubah.

@@ -5,7 +5,7 @@ import { Circle as LeafletCircle, GeoJSON as GeoJSONLayer, MapContainer, Marker,
 import L from "leaflet";
 import "leaflet-draw";
 import * as turf from "@turf/turf";
-import { BarChart3, Circle as CircleIcon, Hexagon, Layers, MapIcon, MapPin, MousePointer2, Plus, Route, Save, Settings, Square, X } from "lucide-react";
+import { BarChart3, Circle as CircleIcon, Hexagon, Layers, MapIcon, MapPin, MousePointer2, Plus, Radar, Route, Save, Settings, Square, X } from "lucide-react";
 import type { Feature } from "geojson";
 
 type LayerType = "land_segmentation" | "disaster_risk" | "elevation" | "marker_label" | "evacuation_route" | "mitigation_resource";
@@ -86,6 +86,7 @@ type DraftObject = {
 };
 
 type WorkspaceCommandEvent = CustomEvent<{ type: "export" | "save" }>;
+type SpatialResultObject = WorkspaceMapObject & { distanceM: number };
 
 const tools: ToolConfig[] = [
   {
@@ -221,6 +222,15 @@ function DrawBridge({ activeTool, onCreated }: { activeTool: ToolConfig | null; 
     handlerRef.current = drawHandler;
     drawHandler.enable();
 
+    const suspendDrawing = () => {
+      drawHandler.disable();
+    };
+    const resumeDrawing = () => {
+      window.setTimeout(() => {
+        if (handlerRef.current === drawHandler) drawHandler.enable();
+      }, 0);
+    };
+
     const handleCreated: L.LeafletEventHandlerFn = (event) => {
       const createdEvent = event as L.DrawEvents.Created;
       const layer = createdEvent.layer;
@@ -253,9 +263,13 @@ function DrawBridge({ activeTool, onCreated }: { activeTool: ToolConfig | null; 
     };
 
     map.on(L.Draw.Event.CREATED, handleCreated);
+    map.on("zoomstart", suspendDrawing);
+    map.on("zoomend", resumeDrawing);
 
     return () => {
       map.off(L.Draw.Event.CREATED, handleCreated);
+      map.off("zoomstart", suspendDrawing);
+      map.off("zoomend", resumeDrawing);
       drawHandler.disable();
     };
   }, [activeTool, map, onCreated]);
@@ -284,7 +298,7 @@ function objectSummary(object: WorkspaceMapObject) {
 }
 
 function dispatchWorkspaceAction(type: "export" | "save", status: "pending" | "success" | "error", message: string) {
-  window.dispatchEvent(new CustomEvent("sigmita:workspace-action", { detail: { type, status, message } }));
+  window.dispatchEvent(new CustomEvent("sigmanta:workspace-action", { detail: { type, status, message } }));
 }
 
 function safeFilename(value: string) {
@@ -425,7 +439,7 @@ async function exportLeafletViewport(map: L.Map, objects: WorkspaceMapObject[], 
   });
 
   const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-  downloadBlob(blob, `sigmita-${safeFilename(projectName)}-${timestamp}.png`);
+  downloadBlob(blob, `sigmanta-${safeFilename(projectName)}-${timestamp}.png`);
 }
 
 export function MapWorkspace({
@@ -438,7 +452,7 @@ export function MapWorkspace({
   riskLevels,
   initialObjects,
 }: MapWorkspaceProps) {
-  const [activeToolKey, setActiveToolKey] = useState<ToolKey>("land_polygon");
+  const [activeToolKey, setActiveToolKey] = useState<ToolKey | null>(null);
   const [activePrimaryLayer, setActivePrimaryLayer] = useState<LayerType>("land_segmentation");
   const [visibleOverlays, setVisibleOverlays] = useState<Record<LayerType, boolean>>({
     land_segmentation: true,
@@ -453,6 +467,10 @@ export function MapWorkspace({
   const [selectedObject, setSelectedObject] = useState<WorkspaceMapObject | null>(initialObjects[0] ?? null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [spatialRadius, setSpatialRadius] = useState(1000);
+  const [spatialResults, setSpatialResults] = useState<SpatialResultObject[]>([]);
+  const [spatialError, setSpatialError] = useState("");
+  const [spatialLoading, setSpatialLoading] = useState(false);
   const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
@@ -468,6 +486,7 @@ export function MapWorkspace({
   const layerById = useMemo(() => new Map(layers.map((layer) => [layer.id, layer])), [layers]);
   const layerByType = useMemo(() => new Map(layers.map((layer) => [layer.layerType, layer])), [layers]);
   const riskById = useMemo(() => new Map(riskLevels.map((risk) => [risk.id, risk])), [riskLevels]);
+  const spatialResultIds = useMemo(() => new Set(spatialResults.map((object) => object.id)), [spatialResults]);
 
   const visibleObjects = objects.filter((object) => {
     const layer = layerById.get(object.layerId);
@@ -576,8 +595,8 @@ export function MapWorkspace({
       if (command.type === "save") void saveProjectView();
     };
 
-    window.addEventListener("sigmita:workspace-command", handleWorkspaceCommand);
-    return () => window.removeEventListener("sigmita:workspace-command", handleWorkspaceCommand);
+    window.addEventListener("sigmanta:workspace-command", handleWorkspaceCommand);
+    return () => window.removeEventListener("sigmanta:workspace-command", handleWorkspaceCommand);
   }, [exportCurrentViewport, saveProjectView]);
 
   async function saveDraft(event: FormEvent<HTMLFormElement>) {
@@ -638,6 +657,35 @@ export function MapWorkspace({
 
     setObjects((current) => [data.object, ...current]);
     setSelectedObject(data.object);
+    setDraft(null);
+  }
+
+  async function runNearbySearch() {
+    const map = mapRef.current;
+    if (!map || spatialLoading) return;
+
+    const centerPoint = map.getCenter();
+    setSpatialLoading(true);
+    setSpatialError("");
+
+    const query = new URLSearchParams({
+      lat: String(centerPoint.lat),
+      lng: String(centerPoint.lng),
+      radius: String(spatialRadius),
+    });
+    const response = await fetch(`/api/projects/${projectId}/spatial/nearby?${query.toString()}`);
+    const data = await response.json().catch(() => null);
+    setSpatialLoading(false);
+
+    if (!response.ok) {
+      setSpatialResults([]);
+      setSpatialError(data?.message ?? "Query PostGIS gagal dijalankan.");
+      return;
+    }
+
+    const results = data.objects as SpatialResultObject[];
+    setSpatialResults(results);
+    setSelectedObject(results[0] ?? null);
     setDraft(null);
   }
 
@@ -756,8 +804,24 @@ export function MapWorkspace({
             <input className="w-full bg-transparent text-sm outline-none" placeholder="Search coordinates..." />
           </label>
           <div className="glass-accent hidden border-2 border-earth-dark bg-earth-light/80 px-3 py-2 text-xs shadow-[3px_3px_0_#1c1a14] md:block">
-            Tool: <span className="font-bold">{activeTool?.label}</span>
+            Tool: <span className="font-bold">{activeTool?.label ?? "Pilih tool"}</span>
           </div>
+        </div>
+        <div className="absolute right-4 top-4 z-[500] hidden items-center gap-2 border-2 border-earth-dark bg-earth-light/90 px-3 py-2 shadow-[3px_3px_0_#1c1a14] md:flex">
+          <Radar size={18} />
+          <input
+            aria-label="Radius PostGIS"
+            className="w-20 border border-earth-dark bg-earth-light px-2 py-1 text-sm outline-none"
+            min={1}
+            max={50000}
+            onChange={(event) => setSpatialRadius(Number(event.target.value) || 1000)}
+            type="number"
+            value={spatialRadius}
+          />
+          <span className="text-xs font-bold">m</span>
+          <button className="brutal-button bg-earth-dark px-3 py-2 text-xs text-earth-light disabled:opacity-60" disabled={spatialLoading} onClick={runNearbySearch} type="button">
+            {spatialLoading ? "Query..." : "PostGIS Radius"}
+          </button>
         </div>
         <div className="absolute bottom-4 left-4 z-[500] border border-earth-dark/20 bg-earth-light px-3 py-2 text-xs shadow-sm">
           {center[0].toFixed(4)}° N, {center[1].toFixed(4)}° E | {objects.length} objek
@@ -774,6 +838,7 @@ export function MapWorkspace({
             const risk = object.riskLevelId ? riskById.get(object.riskLevelId) : null;
             const color = layerColor(layer?.layerType, risk);
             const radius = getMetadataRadius(object.metadata);
+            const isSpatialResult = spatialResultIds.has(object.id);
 
             if (object.geometryType === "circle" && object.latitude && object.longitude && radius) {
               return (
@@ -782,7 +847,7 @@ export function MapWorkspace({
                   center={[object.latitude, object.longitude]}
                   radius={radius}
                   eventHandlers={{ click: () => setSelectedObject(object) }}
-                  pathOptions={{ color, fillColor: color, fillOpacity: 0.16, weight: 2 }}
+                  pathOptions={{ color: isSpatialResult ? "#1c1a14" : color, fillColor: color, fillOpacity: isSpatialResult ? 0.28 : 0.16, weight: isSpatialResult ? 4 : 2 }}
                 />
               );
             }
@@ -802,9 +867,9 @@ export function MapWorkspace({
                 eventHandlers={{ click: () => setSelectedObject(object) }}
                 style={() => ({
                   color,
-                  weight: layer?.layerType === "evacuation_route" ? 4 : 2,
+                  weight: isSpatialResult ? 5 : layer?.layerType === "evacuation_route" ? 4 : 2,
                   fillColor: color,
-                  fillOpacity: layer?.layerType === "disaster_risk" ? 0.14 : 0.22,
+                  fillOpacity: isSpatialResult ? 0.32 : layer?.layerType === "disaster_risk" ? 0.14 : 0.22,
                   dashArray: layer?.layerType === "evacuation_route" ? "8 6" : undefined,
                 })}
               />
@@ -851,6 +916,34 @@ export function MapWorkspace({
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-5">
+          {spatialError || spatialResults.length ? (
+            <div className="mb-5 brutal-card bg-earth-light p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="label-mono text-moss">PostGIS Radius</p>
+                <span className="text-xs font-bold">{spatialResults.length} hasil</span>
+              </div>
+              {spatialError ? <p className="mt-3 border-2 border-hazard bg-hazard-light p-3 text-sm text-hazard">{spatialError}</p> : null}
+              {spatialResults.length ? (
+                <div className="mt-3 space-y-2">
+                  {spatialResults.slice(0, 5).map((object) => (
+                    <button
+                      key={object.id}
+                      className="w-full border-2 border-earth-dark bg-earth-paper px-3 py-2 text-left text-sm hover:bg-moss-light"
+                      onClick={() => {
+                        setSelectedObject(object);
+                        const map = mapRef.current;
+                        if (map && object.latitude && object.longitude) map.flyTo([object.latitude, object.longitude], Math.max(map.getZoom(), 15));
+                      }}
+                      type="button"
+                    >
+                      <span className="block font-bold">{object.name}</span>
+                      <span className="mt-1 block text-xs text-earth-dark/60">{Math.round(object.distanceM)} m dari pusat viewport</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {draft ? (
             <form onSubmit={saveDraft} className="space-y-4">
               <div className="brutal-card bg-earth-light p-4">

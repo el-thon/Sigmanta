@@ -22,7 +22,7 @@ export function ProjectShareDialog({
   const [shareUrl, setShareUrl] = useState("");
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-  const encodedText = encodeURIComponent(`Salin project SIGMITA: ${projectName}`);
+  const encodedText = encodeURIComponent(`Salin project SIGMANTA: ${projectName}`);
   const encodedUrl = encodeURIComponent(shareUrl);
 
   async function openShare() {

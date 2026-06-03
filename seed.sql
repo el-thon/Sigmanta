@@ -1,6 +1,6 @@
--- SIGMITA seed data for Supabase SQL Editor.
+-- SIGMANTA seed data for Supabase SQL Editor.
 -- Demo admin:
--- email: admin@sigmita.test
+-- email: admin@sigmanta.test
 -- password: password123
 
 INSERT INTO "risk_levels" ("name", "code", "color", "score", "description", "updated_at")
@@ -30,13 +30,13 @@ INSERT INTO "users" (
   "updated_at"
 )
 VALUES (
-  'Admin SIGMITA',
-  'admin@sigmita.test',
+  'Admin SIGMANTA',
+  'admin@sigmanta.test',
   '$2b$10$bYXlFN5dNZx5Zl9lJPDUf.An/Ai8Bh3upkGX2cw.WZ778g/.Zs3we',
   'admin',
   '+620000000000',
-  'SIGMITA Admin Workspace',
-  'SIGMITA',
+  'SIGMANTA Admin Workspace',
+  'SIGMANTA',
   'System Administrator',
   30,
   CURRENT_TIMESTAMP

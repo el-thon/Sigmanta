@@ -112,7 +112,7 @@ export function EarthVideoHero({ currentUser }: { currentUser?: AuthUser | null 
             <span className="grid h-8 w-8 place-items-center rounded-sm bg-earth-dark text-earth-light">
               <MapPinned size={17} />
             </span>
-            <span className="font-display text-2xl font-black">SIGMITA</span>
+            <span className="font-display text-2xl font-black">SIGMANTA</span>
           </a>
           <div className="hidden items-center gap-14 text-xs font-bold uppercase tracking-[0.18em] text-earth-dark/55 md:flex">
             <a href="#fitur">Fitur</a>
@@ -227,7 +227,7 @@ export function EarthVideoHero({ currentUser }: { currentUser?: AuthUser | null 
         <div className="mx-auto max-w-[1216px]">
           <MotionReveal>
             <p className="mb-5 inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-earth-light/55">
-              <span className="h-0.5 w-8 bg-moss-light" /> Tentang SIGMITA
+              <span className="h-0.5 w-8 bg-moss-light" /> Tentang SIGMANTA
             </p>
             <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
               <div>
@@ -235,7 +235,7 @@ export function EarthVideoHero({ currentUser }: { currentUser?: AuthUser | null 
                   Sistem informasi geospasial untuk memahami wilayah sebelum mengambil keputusan mitigasi.
                 </h2>
                 <p className="mt-6 max-w-2xl text-base leading-8 text-earth-light/70">
-                  SIGMITA membantu pengguna membuat project pemetaan berbasis wilayah. Setiap project dapat berisi batas lahan, zona risiko bencana,
+                  SIGMANTA membantu pengguna membuat project pemetaan berbasis wilayah. Setiap project dapat berisi batas lahan, zona risiko bencana,
                   fasilitas penting, titik kumpul, posko, gudang logistik, dan jalur evakuasi yang tersimpan sebagai data spasial terstruktur.
                 </p>
               </div>
@@ -282,7 +282,7 @@ export function EarthVideoHero({ currentUser }: { currentUser?: AuthUser | null 
               <div>
                 <p className="label-mono text-earth-light/50">Nilai Utama</p>
                 <p className="mt-3 max-w-3xl text-lg leading-8 text-earth-light/78">
-                  Output SIGMITA dipakai sebagai bahan koordinasi, dokumentasi wilayah, dasar prioritas mitigasi, dan arsip project yang dapat diekspor atau disalin ke akun lain.
+                  Output SIGMANTA dipakai sebagai bahan koordinasi, dokumentasi wilayah, dasar prioritas mitigasi, dan arsip project yang dapat diekspor atau disalin ke akun lain.
                 </p>
               </div>
               <a className="brutal-button shrink-0 border-earth-paper bg-earth-light px-9 py-5 text-earth-dark shadow-[4px_4px_0_rgba(245,240,232,.38)]" href={primaryHref}>

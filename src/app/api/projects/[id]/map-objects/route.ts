@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { syncMapObjectPostgis } from "@/lib/postgis";
 import { errorResponse, success } from "@/lib/response";
 
 const mapObjectSchema = z.object({
@@ -98,6 +99,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       styleConfig: parsed.data.styleConfig === undefined ? undefined : (parsed.data.styleConfig as object),
     },
   });
+
+  await syncMapObjectPostgis(prisma, object.id, parsed.data.geometry).catch(() => undefined);
 
   await prisma.mappingProject.update({
     where: { id: projectId },

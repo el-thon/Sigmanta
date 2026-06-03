@@ -21,14 +21,14 @@ export function ProjectMapToolbar({ projectId, projectName }: { projectId: numbe
       setBusyAction(status === "pending" ? type : null);
     };
 
-    window.addEventListener("sigmita:workspace-action", handleWorkspaceAction);
-    return () => window.removeEventListener("sigmita:workspace-action", handleWorkspaceAction);
+    window.addEventListener("sigmanta:workspace-action", handleWorkspaceAction);
+    return () => window.removeEventListener("sigmanta:workspace-action", handleWorkspaceAction);
   }, []);
 
   function dispatchWorkspaceCommand(type: "export" | "save") {
     setBusyAction(type);
     setMessage(type === "export" ? "Membuat screenshot peta..." : "Menyimpan view project...");
-    window.dispatchEvent(new CustomEvent("sigmita:workspace-command", { detail: { type } }));
+    window.dispatchEvent(new CustomEvent("sigmanta:workspace-command", { detail: { type } }));
   }
 
   return (

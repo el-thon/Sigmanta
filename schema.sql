@@ -1,4 +1,4 @@
--- SIGMITA database schema for Supabase/PostgreSQL.
+-- SIGMANTA database schema for Supabase/PostgreSQL.
 -- Run this in Supabase SQL Editor for a clean database, or use Prisma db push for
 -- application-managed tables. PostGIS is enabled here for spatial indexing/querying.
 

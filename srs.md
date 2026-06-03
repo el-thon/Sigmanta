@@ -1,15 +1,15 @@
-# DESIGN.md — SIGMITA
+# DESIGN.md — SIGMANTA
 
 ## 0. Identitas Sistem
 
-**Nama sistem:** SIGMITA  
+**Nama sistem:** SIGMANTA  
 **Kepanjangan konsep:** Sistem Informasi Geografis Mitigasi dan Tata Area  
 **Jenis sistem:** Platform WebGIS berbasis project  
 **Fokus utama:** Pemetaan lahan, zona rawan bencana, dan titik mitigasi dalam satu peta interaktif.
 
 ## 1. Deskripsi Project
 
-SIGMITA adalah platform WebGIS yang mengintegrasikan pemetaan lahan, identifikasi zona rawan bencana, dan pengelolaan titik mitigasi dalam satu peta interaktif. Sistem ini membantu pengguna memahami kondisi wilayah melalui segmentasi area, analisis risiko, serta visualisasi fasilitas mitigasi sehingga mendukung pengambilan keputusan yang lebih cepat dan tepat berbasis informasi geospasial.
+SIGMANTA adalah platform WebGIS yang mengintegrasikan pemetaan lahan, identifikasi zona rawan bencana, dan pengelolaan titik mitigasi dalam satu peta interaktif. Sistem ini membantu pengguna memahami kondisi wilayah melalui segmentasi area, analisis risiko, serta visualisasi fasilitas mitigasi sehingga mendukung pengambilan keputusan yang lebih cepat dan tepat berbasis informasi geospasial.
 
 ## 2. Tujuan Sistem
 
@@ -24,7 +24,7 @@ SIGMITA adalah platform WebGIS yang mengintegrasikan pemetaan lahan, identifikas
 
 ## 3. Konsep Utama Sistem
 
-SIGMITA menggunakan pendekatan **multi-project**. Setiap user dapat membuat project pemetaan sendiri. Di dalam project, user dapat membuat segmentasi lahan, zona rawan bencana, marker fasilitas, jalur evakuasi, dan titik mitigasi.
+SIGMANTA menggunakan pendekatan **multi-project**. Setiap user dapat membuat project pemetaan sendiri. Di dalam project, user dapat membuat segmentasi lahan, zona rawan bencana, marker fasilitas, jalur evakuasi, dan titik mitigasi.
 
 Sistem tidak menggunakan kolaborasi realtime. Fitur share tidak memberikan akses edit atau read-only terhadap project asli. Ketika user lain membuka share link, sistem akan membuat salinan project tersebut ke akun personal user penerima. Dengan demikian, project asli tetap aman dan tidak berubah.
 
@@ -288,7 +288,7 @@ Contoh metadata titik mitigasi:
 
 ## 15. Struktur Halaman
 
-1. `/` — Landing page SIGMITA
+1. `/` — Landing page SIGMANTA
 2. `/login` — Login
 3. `/register` — Register
 4. `/dashboard` — Dashboard user
@@ -357,7 +357,7 @@ Perubahan penting dari konsep sebelumnya:
 
 ## 19. Alur Penggunaan
 
-1. User membuka landing page SIGMITA.
+1. User membuka landing page SIGMANTA.
 2. User login atau register.
 3. User masuk dashboard.
 4. User membuat project pemetaan.

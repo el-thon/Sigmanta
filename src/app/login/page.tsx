@@ -10,9 +10,9 @@ export default function LoginPage() {
             <span className="grid h-12 w-12 place-items-center border-2 border-earth-dark bg-earth-paper shadow-[4px_4px_0_#1c1a14]">
               <Map />
             </span>
-            <span className="font-display text-3xl font-black">SIGMITA</span>
+            <span className="font-display text-3xl font-black">SIGMANTA</span>
           </a>
-          <h1 className="font-display mt-12 text-4xl font-black">Masuk ke SIGMITA</h1>
+          <h1 className="font-display mt-12 text-4xl font-black">Masuk ke SIGMANTA</h1>
           <p className="mt-3 text-earth-dark/70">Sistem Informasi Geospasial Mitigasi Bencana</p>
           <AuthForm mode="login" />
           <p className="mt-8 text-center text-sm text-earth-dark/70">

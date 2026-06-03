@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { getCurrentUserRecord } from "@/lib/auth";
+import { syncMapObjectPostgis } from "@/lib/postgis";
 import { prisma } from "@/lib/prisma";
 import { errorResponse, success } from "@/lib/response";
 import { slugify } from "@/lib/project";
@@ -85,7 +86,7 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ token
       const layerId = layerIdMap.get(object.layerId);
       if (!layerId) continue;
 
-      await tx.mapObject.create({
+      const createdObject = await tx.mapObject.create({
         data: {
           projectId: project.id,
           layerId,
@@ -111,6 +112,7 @@ export async function POST(_: NextRequest, { params }: { params: Promise<{ token
           styleConfig: object.styleConfig === null ? undefined : (object.styleConfig as object),
         },
       });
+      await syncMapObjectPostgis(tx, createdObject.id, object.geometry).catch(() => undefined);
     }
 
     await tx.projectImport.create({

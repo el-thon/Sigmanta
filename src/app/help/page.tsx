@@ -24,7 +24,7 @@ export default async function HelpPage() {
           <p className="label-mono text-moss">Help Center</p>
           <h1 className="font-display mt-2 text-4xl font-black">Panduan Penggunaan</h1>
           <p className="mt-3 max-w-3xl leading-7 text-earth-dark/70">
-            Alur utama SIGMITA adalah membuat project, menggambar objek geospasial, mengisi metadata, lalu memakai data tersebut untuk land records dan risk reports.
+            Alur utama SIGMANTA adalah membuat project, menggambar objek geospasial, mengisi metadata, lalu memakai data tersebut untuk land records dan risk reports.
           </p>
 
           <div className="mt-8 grid gap-5 md:grid-cols-2">

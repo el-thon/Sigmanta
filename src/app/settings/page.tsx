@@ -24,7 +24,7 @@ export default async function ManageUserPage() {
           <p className="mt-3 max-w-3xl leading-7 text-earth-dark/70">
             Buat user baru, edit data profil, ubah role admin/user, reset password, dan hapus akun dari satu halaman.
           </p>
-          <ManageUsersPanel initialUsers={safeUsers} currentUserId={user.id} />
+          <ManageUsersPanel initialUsers={safeUsers} />
         </div>
       </section>
     </main>

@@ -14,15 +14,15 @@ async function main() {
   }
 
   await prisma.user.upsert({
-    where: { email: "admin@sigmita.test" },
+    where: { email: "admin@sigmanta.test" },
     update: {
-      name: "Admin SIGMITA",
+      name: "Admin SIGMANTA",
       password: demoPassword,
       role: "admin",
     },
     create: {
-      name: "Admin SIGMITA",
-      email: "admin@sigmita.test",
+      name: "Admin SIGMANTA",
+      email: "admin@sigmanta.test",
       password: demoPassword,
       role: "admin",
     },

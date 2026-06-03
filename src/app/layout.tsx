@@ -4,7 +4,7 @@ import "leaflet-draw/dist/leaflet.draw.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "SIGMITA",
+  title: "SIGMANTA",
   description: "Platform WebGIS untuk pemetaan lahan, zona rawan bencana, dan titik mitigasi."
 };
 

@@ -24,7 +24,7 @@ export default async function DashboardPage() {
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
             <div>
-              <h1 className="font-display text-4xl font-black">Dashboard SIGMITA</h1>
+              <h1 className="font-display text-4xl font-black">Dashboard SIGMANTA</h1>
               <p className="mt-3 max-w-3xl leading-7 text-earth-dark/70">
                 Overview spatial risk assessments, active mapping projects, and structural mitigation zones.
               </p>

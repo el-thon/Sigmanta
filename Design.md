@@ -1,12 +1,12 @@
-# SIGMITA — Master Design Prompt
+# SIGMANTA — Master Design Prompt
 
-> Gunakan prompt ini secara utuh saat meminta AI atau developer untuk mengimplementasikan UI/UX SIGMITA. Prompt ini mencakup arah desain, sistem warna, layout, animasi, dan komponen per halaman.
+> Gunakan prompt ini secara utuh saat meminta AI atau developer untuk mengimplementasikan UI/UX SIGMANTA. Prompt ini mencakup arah desain, sistem warna, layout, animasi, dan komponen per halaman.
 
 ---
 
 ## 0. Konteks Sistem
 
-**SIGMITA** adalah platform WebGIS untuk pemetaan lahan, zona rawan bencana, dan titik mitigasi berbasis peta interaktif. Target pengguna adalah petugas lapangan, pengelola wilayah, dan relawan bencana. Sistem ini harus terasa **serius, tepercaya, dan fungsional** — bukan dekoratif.
+**SIGMANTA** adalah platform WebGIS untuk pemetaan lahan, zona rawan bencana, dan titik mitigasi berbasis peta interaktif. Target pengguna adalah petugas lapangan, pengelola wilayah, dan relawan bencana. Sistem ini harus terasa **serius, tepercaya, dan fungsional** — bukan dekoratif.
 
 ---
 
@@ -387,10 +387,10 @@ Implementasi: `requestAnimationFrame` + `window.scrollY` listener.
 ### Struktur
 
 ```
-[SIGMITA ⬛]          [Fitur]  [Cara Kerja]  [Tentang]          [Masuk]  [Daftar →]
+[SIGMANTA ⬛]          [Fitur]  [Cara Kerja]  [Tentang]          [Masuk]  [Daftar →]
 ```
 
-- Logo: nama "SIGMITA" dalam Fraunces bold + icon mini square (konsisten dengan brutal aesthetic)
+- Logo: nama "SIGMANTA" dalam Fraunces bold + icon mini square (konsisten dengan brutal aesthetic)
 - Links: DM Mono uppercase, font-size 0.8rem, letter-spacing 0.1em
 - State awal: transparent background
 - State scroll (>80px): glass accent effect (`backdrop-filter: blur(12px)`) + border-bottom `1px solid rgba(..., 0.12)`
@@ -688,4 +688,4 @@ Ketika mengimplementasikan prompt ini, hasil akhir yang diharapkan:
 
 ---
 
-*Prompt ini dibuat sebagai design brief lengkap untuk SIGMITA WebGIS. Versi: 1.0*
+*Prompt ini dibuat sebagai design brief lengkap untuk SIGMANTA WebGIS. Versi: 1.0*
