@@ -48,7 +48,7 @@ export default async function LandRecordsPage({ searchParams }: { searchParams: 
                 Daftar objek segmentasi lahan yang dibuat dari Map Workspace dan tersimpan di database.
               </p>
             </div>
-            <a className="brutal-button bg-earth-dark px-5 py-4 text-earth-light" href="/workspace">
+            <a className="brutal-button bg-earth-dark px-5 py-4 text-earth-light" href={projectId ? `/projects/${projectId}/map` : "/workspace"}>
               <MapPin size={18} /> Buka Workspace
             </a>
           </div>

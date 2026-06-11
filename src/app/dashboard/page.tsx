@@ -14,6 +14,34 @@ export default async function DashboardPage() {
     orderBy: { updatedAt: "desc" },
     take: 8,
   });
+  const [highRiskCount, mitigationCount, areaAggregate, lastExport] = await Promise.all([
+    prisma.mapObject.count({
+      where: {
+        project: { ownerId: user.id },
+        OR: [{ objectType: "disaster_area" }, { objectType: "radius_area" }, { layer: { layerType: "disaster_risk" } }],
+        riskLevel: { score: { gte: 4 } },
+      },
+    }),
+    prisma.mapObject.count({
+      where: {
+        project: { ownerId: user.id },
+        OR: [{ objectType: "resource_point" }, { layer: { layerType: "mitigation_resource" } }],
+      },
+    }),
+    prisma.mapObject.aggregate({
+      where: {
+        project: { ownerId: user.id },
+        OR: [{ objectType: "land_segment" }, { layer: { layerType: "land_segmentation" } }],
+      },
+      _sum: { areaSize: true },
+    }),
+    prisma.mapExport.findFirst({
+      where: { creator: { id: user.id } },
+      orderBy: { createdAt: "desc" },
+      include: { project: { select: { name: true } } },
+    }),
+  ]);
+  const mappedAreaHa = Number(areaAggregate._sum.areaSize ?? 0) / 10000;
 
   return (
     <main className="page-enter flex min-h-screen bg-earth-light text-earth-dark">
@@ -41,14 +69,14 @@ export default async function DashboardPage() {
                   <span className="border-2 border-hazard px-3 py-1 text-xs font-bold uppercase text-hazard">Critical</span>
                   <AlertTriangle className="text-hazard" />
                 </div>
-                <p className="font-display mt-6 text-5xl font-black text-hazard">14</p>
+                <p className="font-display mt-6 text-5xl font-black text-hazard">{highRiskCount}</p>
                 <p className="label-mono mt-2 text-hazard">Zona Risiko Tinggi</p>
               </article>
             </MotionReveal>
             <MotionReveal className="md:col-span-6" delay={0.08}>
               <article className="brutal-card min-h-40 p-6">
                 <span className="border-2 border-earth-dark px-3 py-1 text-xs font-bold uppercase">Coverage</span>
-                <p className="font-display mt-8 text-5xl font-black">2,450 <span className="text-2xl">Ha</span></p>
+                <p className="font-display mt-8 text-5xl font-black">{mappedAreaHa.toFixed(2)} <span className="text-2xl">Ha</span></p>
                 <p className="label-mono mt-2 text-earth-dark/60">Area Terpetakan</p>
               </article>
             </MotionReveal>
@@ -64,7 +92,7 @@ export default async function DashboardPage() {
             </MotionReveal>
             <MotionReveal className="md:col-span-4" delay={0.18}>
               <article className="brutal-card min-h-32 p-6">
-                <p className="font-display text-3xl font-black">128</p>
+                <p className="font-display text-3xl font-black">{mitigationCount}</p>
                 <p className="label-mono mt-2 text-earth-dark/65">Titik Mitigasi</p>
               </article>
             </MotionReveal>
@@ -72,8 +100,8 @@ export default async function DashboardPage() {
               <article className="brutal-card flex min-h-32 flex-col justify-between gap-5 p-6 md:flex-row md:items-center">
                 <div>
                   <p className="label-mono text-earth-dark/65">Export Terakhir</p>
-                  <h2 className="font-display mt-3 text-3xl font-black">Laporan_Banjir_Bandung_Q3.pdf</h2>
-                  <p className="mt-2 text-sm text-earth-dark/65">Hari ini, 09:41 AM</p>
+                  <h2 className="font-display mt-3 text-3xl font-black">{lastExport ? lastExport.title : "Belum ada export"}</h2>
+                  <p className="mt-2 text-sm text-earth-dark/65">{lastExport ? `${lastExport.project.name} · ${lastExport.createdAt.toLocaleString("id-ID")}` : "Export GeoJSON dari workspace untuk membuat catatan export."}</p>
                 </div>
                 <button className="brutal-button bg-earth-light px-5 py-3"><Download size={16} /> Unduh Ulang</button>
               </article>

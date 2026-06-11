@@ -1,13 +1,13 @@
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { getCurrentUserRecord } from "@/lib/auth";
-import { CircleHelp, Hexagon, MapPin, Route, Square } from "lucide-react";
+import { CircleHelp, Hexagon, MapPin, Search, Square } from "lucide-react";
 import { redirect } from "next/navigation";
 
 const guides = [
   { title: "Buat Project", body: "Masuk ke New Analysis, isi nama project, lokasi, koordinat center, lalu sistem akan membuka Map Workspace." },
-  { title: "Segmentasi Lahan", body: "Pilih tool Segmentasi Lahan atau Blok Lahan, gambar area, isi kategori, lalu simpan sebagai land record." },
-  { title: "Zona Rawan Bencana", body: "Pilih Zona Rawan Bencana atau Radius Risiko, pilih tingkat risiko, lalu simpan untuk muncul di Risk Reports." },
-  { title: "Titik dan Jalur Mitigasi", body: "Gunakan Titik Mitigasi untuk posko/titik kumpul dan Jalur Evakuasi untuk rute polyline." },
+  { title: "Segmentasi Lahan", body: "Pilih tool Segmentasi Lahan atau Blok Lahan, atau ambil batas wilayah OSM untuk membuat polygon mengikuti bentuk wilayah." },
+  { title: "Zona Rawan Bencana", body: "Pilih Zona Rawan Bencana atau Circle Rawan Bencana, pilih tingkat risiko, lalu simpan untuk muncul di Risk Reports." },
+  { title: "Titik Mitigasi", body: "Gunakan Titik Mitigasi untuk posko/titik kumpul. Saat zona rawan dipilih, sistem menghitung rute tercepat ke titik mitigasi." },
 ];
 
 export default async function HelpPage() {
@@ -24,7 +24,7 @@ export default async function HelpPage() {
           <p className="label-mono text-moss">Help Center</p>
           <h1 className="font-display mt-2 text-4xl font-black">Panduan Penggunaan</h1>
           <p className="mt-3 max-w-3xl leading-7 text-earth-dark/70">
-            Alur utama SIGMANTA adalah membuat project, menggambar objek geospasial, mengisi metadata, lalu memakai data tersebut untuk land records dan risk reports.
+            Alur utama SIGMANTA adalah membuat project, menggambar objek geospasial, mengisi detail objek, lalu memakai data tersebut untuk land records dan risk reports.
           </p>
 
           <div className="mt-8 grid gap-5 md:grid-cols-2">
@@ -45,7 +45,7 @@ export default async function HelpPage() {
                 { label: "Rectangle", icon: Square },
                 { label: "Circle", icon: CircleHelp },
                 { label: "Marker", icon: MapPin },
-                { label: "Polyline", icon: Route },
+                { label: "Boundary", icon: Search },
               ].map((item) => {
                 const Icon = item.icon;
                 return (

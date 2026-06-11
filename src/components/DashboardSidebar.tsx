@@ -11,6 +11,7 @@ type DashboardSidebarProps = {
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: BarChart3, key: "dashboard" },
+  { label: "Projects", href: "/projects", icon: FolderOpen, key: "projects" },
   { label: "Map Workspace", href: "/workspace", icon: Map, key: "map" },
   { label: "Land Records", href: "/land-records", icon: Layers, key: "records" },
   { label: "Risk Reports", href: "/risk-reports", icon: BarChart3, key: "reports" },

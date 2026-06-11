@@ -59,7 +59,7 @@ export default async function RiskReportsPage({ searchParams }: { searchParams: 
               </p>
             </div>
             <div className="flex gap-3">
-              <a className="brutal-button bg-earth-light px-5 py-4" href="/workspace">
+              <a className="brutal-button bg-earth-light px-5 py-4" href={projectId ? `/projects/${projectId}/map` : "/workspace"}>
                 <MapPin size={18} /> Buka Peta
               </a>
               <button className="brutal-button bg-earth-dark px-5 py-4 text-earth-light" type="button">
@@ -134,7 +134,7 @@ export default async function RiskReportsPage({ searchParams }: { searchParams: 
               {!riskObjects.length ? (
                 <div className="p-8">
                   <h2 className="font-display text-2xl font-black">Belum ada zona risiko.</h2>
-                  <p className="mt-2 text-earth-dark/70">Gambar Zona Rawan Bencana atau Radius Risiko di Map Workspace.</p>
+                  <p className="mt-2 text-earth-dark/70">Gambar Zona Rawan Bencana atau Circle Rawan Bencana di Map Workspace.</p>
                 </div>
               ) : null}
             </div>
