@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "leaflet/dist/leaflet.css";
-import "leaflet-draw/dist/leaflet.draw.css";
+import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
 import "./globals.css";
 
 export const metadata: Metadata = {

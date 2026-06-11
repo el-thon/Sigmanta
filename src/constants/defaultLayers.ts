@@ -11,8 +11,7 @@ export const DEFAULT_LAYERS = [
   { name: "Zona Rawan Bencana", layerType: "disaster_risk", renderType: "primary", displayOrder: 2 },
   { name: "Elevasi", layerType: "elevation", renderType: "primary", displayOrder: 3 },
   { name: "Marker dan Label", layerType: "marker_label", renderType: "overlay", displayOrder: 4 },
-  { name: "Jalur Evakuasi", layerType: "evacuation_route", renderType: "overlay", displayOrder: 5 },
-  { name: "Titik Mitigasi", layerType: "mitigation_resource", renderType: "overlay", displayOrder: 6 },
+  { name: "Titik Mitigasi", layerType: "mitigation_resource", renderType: "overlay", displayOrder: 5 },
 ] as const;
 
 export const DEFAULT_CATEGORIES = {

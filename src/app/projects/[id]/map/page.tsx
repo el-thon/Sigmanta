@@ -53,12 +53,6 @@ export default async function ProjectMapPage({ params }: { params: Promise<{ id:
           <a href="/dashboard" className="font-display flex items-center gap-2 text-2xl font-black">
             <ArrowLeft size={20} /> SIGMANTA GIS
           </a>
-          <nav className="hidden items-center gap-8 text-sm text-earth-dark/75 md:flex">
-            <a href="/dashboard">Global Risks</a>
-            <a href="/projects">Land Registry</a>
-            <a href="#">Methodology</a>
-            <a href="/">About</a>
-          </nav>
         </div>
         <ProjectMapToolbar projectId={project.id} projectName={project.name} />
       </header>

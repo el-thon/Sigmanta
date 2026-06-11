@@ -228,6 +228,7 @@ model MapObject {
   description  String?
   notes        String?
   geometry     Json
+  geometryPostgis Unsupported("geometry(Geometry, 4326)")? @map("geometry_postgis")
   metadata     Json?
   labelConfig  Json?        @map("label_config")
   styleConfig  Json?        @map("style_config")
