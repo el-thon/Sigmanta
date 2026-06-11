@@ -32,6 +32,10 @@ export function EarthGlobe3D({ className = "" }: EarthGlobe3DProps) {
         globe.style.setProperty("--earth-offset", `${interaction.offset}px`);
         globe.style.setProperty("--earth-tilt-x", `${interaction.tiltX}deg`);
         globe.style.setProperty("--earth-tilt-y", `${interaction.tiltY}deg`);
+        globe.style.setProperty("--earth-shift-x", `${interaction.tiltY * 0.65}px`);
+        globe.style.setProperty("--earth-shift-y", `${interaction.tiltX * -0.45}px`);
+        globe.style.setProperty("--earth-shade-x", `${interaction.tiltY * -0.3}px`);
+        globe.style.setProperty("--earth-shade-y", `${interaction.tiltX * 0.2}px`);
       }
 
       interaction.frame = window.requestAnimationFrame(animate);

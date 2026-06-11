@@ -1,4 +1,4 @@
-import { ArrowRight, Database, Link, Map, MapPinned, Pencil, Pin, TriangleAlert } from "lucide-react";
+import { ArrowRight, Download, Link, Map, MapPinned, Pencil, Pin, Route, TriangleAlert } from "lucide-react";
 import { EarthGlobe3D } from "@/components/EarthGlobe3D";
 import { MotionReveal } from "@/components/MotionReveal";
 import { Typewriter } from "@/components/Typewriter";
@@ -7,7 +7,7 @@ import type { AuthUser } from "@/lib/auth";
 const features = [
   {
     title: "Pemetaan Lahan Interaktif",
-    body: "Gambar polygon, rectangle, circle, marker, dan polyline langsung di peta.",
+    body: "Gambar polygon dan rectangle untuk segmentasi wilayah langsung di peta.",
     tag: "Core",
     surfaceColor: "#171713",
     tone: "light",
@@ -27,7 +27,7 @@ const features = [
   },
   {
     title: "Share & Import",
-    body: "Bagikan project via link.",
+    body: "Bagikan project via link dan salin ke workspace penerima tanpa mengubah project asli.",
     tag: "",
     surfaceColor: "#2269a8",
     tone: "light",
@@ -36,18 +36,18 @@ const features = [
     icon: Link,
   },
   {
-    title: "Export GeoJSON",
-    body: "Ekspor data dalam format standar industri GIS.",
+    title: "Export Peta",
+    body: "Unduh tampilan peta aktif sebagai gambar untuk dokumentasi cepat.",
     tag: "",
     surfaceColor: "#f4eee6",
     tone: "dark",
     className: "md:col-span-3",
     height: "min-h-[318px]",
-    icon: Database,
+    icon: Download,
   },
   {
-    title: "Digitasi Multi-Bentuk",
-    body: "Polygon, circle, rectangle, marker, polyline dalam satu drawing toolbar yang terintegrasi metadata JSON.",
+    title: "Drawing Berbasis Tab",
+    body: "Pilih tab Rawan Bencana, Segmentasi, atau Titik Mitigasi untuk membuat objek sesuai konteks kerja.",
     tag: "Drawing",
     surfaceColor: "#2f740f",
     tone: "light",
@@ -56,39 +56,39 @@ const features = [
     icon: Pencil,
   },
   {
-    title: "Titik Mitigasi",
-    body: "Posko, titik kumpul, fasilitas kesehatan, gudang logistik.",
+    title: "Rute Evakuasi",
+    body: "Pilih zona rawan dan titik mitigasi, lalu SIGMANTA menampilkan rute tercepat di peta.",
     tag: "",
     surfaceColor: "#eee9df",
     tone: "dark",
     className: "md:col-span-4",
     height: "min-h-[318px]",
-    icon: Pin,
+    icon: Route,
   },
 ];
 
 const steps = [
   ["Buat Project", "Beri nama dan deskripsi wilayah pemetaan."],
   ["Buka Workspace", "Masuk ke peta interaktif 2D berbasis Leaflet."],
-  ["Gambar & Segmentasi", "Digitasi lahan, zona bencana, dan marker."],
-  ["Isi Metadata", "Tambahkan atribut JSON pada setiap objek."],
-  ["Export & Bagikan", "Ekspor GeoJSON atau bagikan via share link."],
+  ["Gambar Objek", "Gunakan tab Rawan Bencana, Segmentasi, atau Titik Mitigasi."],
+  ["Edit & Tinjau", "Perbarui nama, label, kategori, risiko, dan catatan objek yang sudah dibuat."],
+  ["Rute & Bagikan", "Tampilkan rute evakuasi atau bagikan salinan project via link."],
 ];
 
 const projectOutputs = [
   {
     title: "Peta Interaktif",
-    body: "Visualisasi wilayah kerja berisi segmentasi lahan, zona rawan bencana, marker fasilitas, titik mitigasi, dan jalur evakuasi.",
+    body: "Visualisasi wilayah kerja berisi segmentasi lahan, zona rawan bencana, marker fasilitas, dan titik mitigasi.",
     icon: Map,
   },
   {
-    title: "Data GeoJSON",
-    body: "Output spasial standar yang dapat dipakai ulang untuk analisis GIS, dokumentasi teknis, dan pertukaran data lintas sistem.",
-    icon: Database,
+    title: "Rute Evakuasi",
+    body: "Jalur dari zona rawan menuju titik mitigasi dipilih berdasarkan tujuan manual atau estimasi tercepat.",
+    icon: Route,
   },
   {
     title: "Rekap Risiko",
-    body: "Ringkasan objek, kategori, luas area, level risiko, dan metadata lapangan untuk membantu prioritas mitigasi.",
+    body: "Ringkasan objek, kategori, luas area, level risiko, dan catatan lapangan untuk membantu prioritas mitigasi.",
     icon: TriangleAlert,
   },
 ];
@@ -236,7 +236,7 @@ export function EarthVideoHero({ currentUser }: { currentUser?: AuthUser | null 
                 </h2>
                 <p className="mt-6 max-w-2xl text-base leading-8 text-earth-light/70">
                   SIGMANTA membantu pengguna membuat project pemetaan berbasis wilayah. Setiap project dapat berisi batas lahan, zona risiko bencana,
-                  fasilitas penting, titik kumpul, posko, gudang logistik, dan jalur evakuasi yang tersimpan sebagai data spasial terstruktur.
+                  fasilitas penting, titik kumpul, posko, dan gudang logistik. Rute evakuasi dapat dihitung dari zona rawan menuju titik mitigasi yang dipilih.
                 </p>
               </div>
 
@@ -282,7 +282,7 @@ export function EarthVideoHero({ currentUser }: { currentUser?: AuthUser | null 
               <div>
                 <p className="label-mono text-earth-light/50">Nilai Utama</p>
                 <p className="mt-3 max-w-3xl text-lg leading-8 text-earth-light/78">
-                  Output SIGMANTA dipakai sebagai bahan koordinasi, dokumentasi wilayah, dasar prioritas mitigasi, dan arsip project yang dapat diekspor atau disalin ke akun lain.
+                  Output SIGMANTA dipakai sebagai bahan koordinasi, dokumentasi wilayah, dasar prioritas mitigasi, dan arsip project yang dapat disimpan, diperbarui, atau disalin ke akun lain.
                 </p>
               </div>
               <a className="brutal-button shrink-0 border-earth-paper bg-earth-light px-9 py-5 text-earth-dark shadow-[4px_4px_0_rgba(245,240,232,.38)]" href={primaryHref}>
