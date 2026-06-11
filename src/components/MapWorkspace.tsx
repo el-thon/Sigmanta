@@ -86,7 +86,7 @@ type DraftObject = {
   longitude: number | null;
 };
 
-type WorkspaceCommandEvent = CustomEvent<{ type: "export" | "save" }>;
+type WorkspaceCommandEvent = CustomEvent<{ type: "pdf" | "save" }>;
 type EvacuationRouteState = {
   loading: boolean;
   error: string;
@@ -380,7 +380,7 @@ function vehicleEstimates(distanceM: number | null, drivingSeconds: number | nul
   ];
 }
 
-function dispatchWorkspaceAction(type: "export" | "save", status: "pending" | "success" | "error", message: string) {
+function dispatchWorkspaceAction(type: "pdf" | "save", status: "pending" | "success" | "error", message: string) {
   window.dispatchEvent(new CustomEvent("sigmanta:workspace-action", { detail: { type, status, message } }));
 }
 
@@ -402,6 +402,73 @@ function downloadBlob(blob: Blob, filename: string) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+function concatBytes(parts: Uint8Array[]) {
+  const length = parts.reduce((sum, part) => sum + part.length, 0);
+  const output = new Uint8Array(length);
+  let offset = 0;
+  parts.forEach((part) => {
+    output.set(part, offset);
+    offset += part.length;
+  });
+  return output;
+}
+
+function dataUrlToBytes(dataUrl: string) {
+  const base64 = dataUrl.split(",")[1] ?? "";
+  const binary = window.atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  return bytes;
+}
+
+function createPdfBlobFromCanvas(canvas: HTMLCanvasElement) {
+  const encoder = new TextEncoder();
+  const imageBytes = dataUrlToBytes(canvas.toDataURL("image/jpeg", 0.92));
+  const pageWidth = 842;
+  const pageHeight = 595;
+  const margin = 22;
+  const availableWidth = pageWidth - margin * 2;
+  const availableHeight = pageHeight - margin * 2;
+  const imageAspect = canvas.width / canvas.height;
+  let imageWidth = availableWidth;
+  let imageHeight = imageWidth / imageAspect;
+  if (imageHeight > availableHeight) {
+    imageHeight = availableHeight;
+    imageWidth = imageHeight * imageAspect;
+  }
+  const imageX = (pageWidth - imageWidth) / 2;
+  const imageY = pageHeight - margin - imageHeight;
+
+  const objects: Uint8Array[] = [];
+  objects.push(encoder.encode("1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n"));
+  objects.push(encoder.encode("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n"));
+  objects.push(encoder.encode(`3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`));
+  objects.push(concatBytes([
+    encoder.encode(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${canvas.width} /Height ${canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${imageBytes.length} >>\nstream\n`),
+    imageBytes,
+    encoder.encode("\nendstream\nendobj\n"),
+  ]));
+
+  const content = `q\n${imageWidth.toFixed(2)} 0 0 ${imageHeight.toFixed(2)} ${imageX.toFixed(2)} ${imageY.toFixed(2)} cm\n/Im0 Do\nQ\n`;
+  objects.push(encoder.encode(`5 0 obj\n<< /Length ${content.length} >>\nstream\n${content}endstream\nendobj\n`));
+
+  const chunks: Uint8Array[] = [encoder.encode("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n")];
+  const offsets = [0];
+  let byteOffset = chunks[0].length;
+  objects.forEach((object) => {
+    offsets.push(byteOffset);
+    chunks.push(object);
+    byteOffset += object.length;
+  });
+
+  const xrefOffset = byteOffset;
+  const xrefRows = offsets.map((offset, index) => (index === 0 ? "0000000000 65535 f \n" : `${String(offset).padStart(10, "0")} 00000 n \n`)).join("");
+  chunks.push(encoder.encode(`xref\n0 ${offsets.length}\n${xrefRows}trailer\n<< /Size ${offsets.length} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`));
+
+  const blobParts = chunks.map((chunk) => chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength) as ArrayBuffer);
+  return new Blob(blobParts, { type: "application/pdf" });
 }
 
 function drawGeoJsonObject(ctx: CanvasRenderingContext2D, map: L.Map, object: WorkspaceMapObject, color: string) {
@@ -478,7 +545,33 @@ function drawGeoJsonObject(ctx: CanvasRenderingContext2D, map: L.Map, object: Wo
   ctx.restore();
 }
 
-async function exportLeafletViewport(map: L.Map, objects: WorkspaceMapObject[], getColor: (object: WorkspaceMapObject) => string, projectName: string) {
+function drawExportInfoPanel(ctx: CanvasRenderingContext2D, canvasWidth: number, lines: string[]) {
+  const scale = canvasWidth > 1100 ? 1 : Math.max(0.78, canvasWidth / 1100);
+  const panelX = 18;
+  const panelY = 18;
+  const panelWidth = Math.min(430 * scale, canvasWidth - 36);
+  const lineHeight = 18 * scale;
+  const padding = 14 * scale;
+  const panelHeight = padding * 2 + lines.length * lineHeight;
+
+  ctx.save();
+  ctx.globalAlpha = 0.92;
+  ctx.fillStyle = "#f5f0e8";
+  ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = "#1c1a14";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
+  ctx.fillStyle = "#1c1a14";
+  ctx.font = `700 ${13 * scale}px monospace`;
+  lines.forEach((line, index) => {
+    const text = line.length > 58 ? `${line.slice(0, 55)}...` : line;
+    ctx.fillText(text, panelX + padding, panelY + padding + lineHeight * (index + 0.75));
+  });
+  ctx.restore();
+}
+
+async function renderLeafletViewportCanvas(map: L.Map, objects: WorkspaceMapObject[], getColor: (object: WorkspaceMapObject) => string, infoLines?: string[]) {
   const size = map.getSize();
   const container = map.getContainer();
   const containerRect = container.getBoundingClientRect();
@@ -506,23 +599,16 @@ async function exportLeafletViewport(map: L.Map, objects: WorkspaceMapObject[], 
   ctx.globalAlpha = 1;
 
   objects.forEach((object) => drawGeoJsonObject(ctx, map, object, getColor(object)));
+  if (infoLines?.length) drawExportInfoPanel(ctx, size.x, infoLines);
 
-  const blob = await new Promise<Blob>((resolve, reject) => {
-    try {
-      canvas.toBlob((nextBlob) => {
-        if (nextBlob) {
-          resolve(nextBlob);
-        } else {
-          reject(new Error("Screenshot peta gagal dibuat."));
-        }
-      }, "image/png");
-    } catch {
-      reject(new Error("Screenshot gagal karena tile peta tidak mengizinkan export canvas."));
-    }
-  });
+  return canvas;
+}
 
+async function exportLeafletReportPdf(map: L.Map, objects: WorkspaceMapObject[], getColor: (object: WorkspaceMapObject) => string, projectName: string, infoLines: string[]) {
+  const canvas = await renderLeafletViewportCanvas(map, objects, getColor, infoLines);
+  const blob = createPdfBlobFromCanvas(canvas);
   const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-  downloadBlob(blob, `sigmanta-${safeFilename(projectName)}-${timestamp}.png`);
+  downloadBlob(blob, `sigmanta-${safeFilename(projectName)}-${timestamp}.pdf`);
 }
 
 export function MapWorkspace({
@@ -603,6 +689,64 @@ export function MapWorkspace({
       return layer?.layerType === "mitigation_resource" && Boolean(objectPoint(object));
     });
   }, [layerById, objects]);
+
+  const exportObjects = useMemo(() => {
+    const draftLayer = draft ? layerByType.get(draft.tool.layerType) : null;
+    if (!draft || !draftLayer) return visibleObjects;
+    return [
+      ...visibleObjects,
+      {
+        id: -1,
+        projectId,
+        layerId: draftLayer.id,
+        categoryId: null,
+        riskLevelId: null,
+        name: draft.tool.label,
+        label: null,
+        objectType: draft.tool.objectType,
+        geometryType: draft.tool.geometryType,
+        areaSize: draft.areaSize,
+        lengthSize: draft.lengthSize,
+        latitude: draft.latitude,
+        longitude: draft.longitude,
+        description: null,
+        notes: null,
+        geometry: draft.geometry,
+        metadata: draft.radiusSize ? { radius_m: draft.radiusSize } : {},
+        styleConfig: null,
+        createdAt: "",
+        updatedAt: "",
+      } satisfies WorkspaceMapObject,
+    ];
+  }, [draft, layerByType, projectId, visibleObjects]);
+
+  const getObjectColor = useCallback((object: WorkspaceMapObject) => {
+    if (object.id === -1 && draft) return layerColor(draft.tool.layerType);
+    const layer = layerById.get(object.layerId);
+    const risk = object.riskLevelId ? riskById.get(object.riskLevelId) : null;
+    return layerColor(layer?.layerType, risk);
+  }, [draft, layerById, riskById]);
+
+  const pdfInfoLines = useMemo(() => {
+    const countByLayer = (layerType: LayerType) => visibleObjects.filter((object) => layerById.get(object.layerId)?.layerType === layerType).length;
+    const selectedLayer = selectedObject ? layerById.get(selectedObject.layerId) : null;
+    const selectedRisk = selectedObject?.riskLevelId ? riskById.get(selectedObject.riskLevelId) : null;
+    const lines = [
+      `SIGMANTA GIS - ${projectName}`,
+      `Lokasi: ${projectLocation}`,
+      `Objek terlihat: ${visibleObjects.length}`,
+      `Rawan bencana: ${countByLayer("disaster_risk")} | Segmentasi: ${countByLayer("land_segmentation")}`,
+      `Titik mitigasi: ${countByLayer("mitigation_resource")} | Marker: ${countByLayer("marker_label")}`,
+    ];
+
+    if (selectedObject) {
+      lines.push(`Fokus: ${selectedObject.name}`);
+      lines.push(`Layer: ${selectedLayer?.name ?? selectedObject.objectType}${selectedRisk ? ` | Risiko: ${selectedRisk.name}` : ""}`);
+      lines.push(`Ukuran: ${objectSummary(selectedObject)}`);
+    }
+
+    return lines;
+  }, [layerById, projectLocation, projectName, riskById, selectedObject, visibleObjects]);
 
   useEffect(() => {
     let cancelled = false;
@@ -704,60 +848,21 @@ export function MapWorkspace({
     setEditError("");
   }, []);
 
-  const exportCurrentViewport = useCallback(async () => {
+  const exportCurrentPdf = useCallback(async () => {
     const map = mapRef.current;
     if (!map) {
-      dispatchWorkspaceAction("export", "error", "Peta belum siap untuk diexport.");
+      dispatchWorkspaceAction("pdf", "error", "Peta belum siap untuk diexport.");
       return;
     }
 
-    dispatchWorkspaceAction("export", "pending", "Membuat screenshot peta...");
+    dispatchWorkspaceAction("pdf", "pending", "Membuat PDF peta...");
     try {
-      const draftLayer = draft ? layerByType.get(draft.tool.layerType) : null;
-      const objectsForExport = draft && draftLayer
-        ? [
-            ...visibleObjects,
-            {
-              id: -1,
-              projectId,
-              layerId: draftLayer.id,
-              categoryId: null,
-              riskLevelId: null,
-              name: draft.tool.label,
-              label: null,
-              objectType: draft.tool.objectType,
-              geometryType: draft.tool.geometryType,
-              areaSize: draft.areaSize,
-              lengthSize: draft.lengthSize,
-              latitude: draft.latitude,
-              longitude: draft.longitude,
-              description: null,
-              notes: null,
-              geometry: draft.geometry,
-              metadata: draft.radiusSize ? { radius_m: draft.radiusSize } : {},
-              styleConfig: null,
-              createdAt: "",
-              updatedAt: "",
-            } satisfies WorkspaceMapObject,
-          ]
-        : visibleObjects;
-
-      await exportLeafletViewport(
-        map,
-        objectsForExport,
-        (object) => {
-          if (object.id === -1 && draft) return layerColor(draft.tool.layerType);
-          const layer = layerById.get(object.layerId);
-          const risk = object.riskLevelId ? riskById.get(object.riskLevelId) : null;
-          return layerColor(layer?.layerType, risk);
-        },
-        projectName,
-      );
-      dispatchWorkspaceAction("export", "success", "Screenshot peta berhasil didownload.");
+      await exportLeafletReportPdf(map, exportObjects, getObjectColor, projectName, pdfInfoLines);
+      dispatchWorkspaceAction("pdf", "success", "PDF peta berhasil didownload.");
     } catch (error) {
-      dispatchWorkspaceAction("export", "error", error instanceof Error ? error.message : "Export screenshot gagal.");
+      dispatchWorkspaceAction("pdf", "error", error instanceof Error ? error.message : "Export PDF gagal.");
     }
-  }, [draft, layerById, layerByType, projectId, projectName, riskById, visibleObjects]);
+  }, [exportObjects, getObjectColor, pdfInfoLines, projectName]);
 
   const saveProjectView = useCallback(async () => {
     const map = mapRef.current;
@@ -795,13 +900,13 @@ export function MapWorkspace({
   useEffect(() => {
     const handleWorkspaceCommand = (event: Event) => {
       const command = (event as WorkspaceCommandEvent).detail;
-      if (command.type === "export") void exportCurrentViewport();
+      if (command.type === "pdf") void exportCurrentPdf();
       if (command.type === "save") void saveProjectView();
     };
 
     window.addEventListener("sigmanta:workspace-command", handleWorkspaceCommand);
     return () => window.removeEventListener("sigmanta:workspace-command", handleWorkspaceCommand);
-  }, [exportCurrentViewport, saveProjectView]);
+  }, [exportCurrentPdf, saveProjectView]);
 
   async function saveDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

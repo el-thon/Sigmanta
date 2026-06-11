@@ -5,13 +5,13 @@ import { Download, Save } from "lucide-react";
 import { ProjectShareDialog } from "@/components/ProjectShareDialog";
 
 type WorkspaceActionEvent = CustomEvent<{
-  type: "export" | "save";
+  type: "pdf" | "save";
   status: "pending" | "success" | "error";
   message: string;
 }>;
 
 export function ProjectMapToolbar({ projectId, projectName }: { projectId: number; projectName: string }) {
-  const [busyAction, setBusyAction] = useState<"export" | "geojson" | "save" | null>(null);
+  const [busyAction, setBusyAction] = useState<"pdf" | "geojson" | "save" | null>(null);
   const [message, setMessage] = useState("Last saved: ready");
 
   useEffect(() => {
@@ -25,9 +25,9 @@ export function ProjectMapToolbar({ projectId, projectName }: { projectId: numbe
     return () => window.removeEventListener("sigmanta:workspace-action", handleWorkspaceAction);
   }, []);
 
-  function dispatchWorkspaceCommand(type: "export" | "save") {
+  function dispatchWorkspaceCommand(type: "pdf" | "save") {
     setBusyAction(type);
-    setMessage(type === "export" ? "Membuat screenshot peta..." : "Menyimpan view project...");
+    setMessage(type === "pdf" ? "Membuat PDF peta..." : "Menyimpan view project...");
     window.dispatchEvent(new CustomEvent("sigmanta:workspace-command", { detail: { type } }));
   }
 
@@ -69,11 +69,11 @@ export function ProjectMapToolbar({ projectId, projectName }: { projectId: numbe
       />
       <button
         className="brutal-button bg-earth-light px-4 py-3 disabled:cursor-not-allowed disabled:opacity-65"
-        disabled={busyAction === "export"}
-        onClick={() => dispatchWorkspaceCommand("export")}
+        disabled={busyAction === "pdf"}
+        onClick={() => dispatchWorkspaceCommand("pdf")}
         type="button"
       >
-        <Download size={16} /> {busyAction === "export" ? "Exporting" : "Export"}
+        <Download size={16} /> {busyAction === "pdf" ? "Exporting" : "PDF"}
       </button>
       <button
         className="brutal-button bg-earth-light px-4 py-3 disabled:cursor-not-allowed disabled:opacity-65"
