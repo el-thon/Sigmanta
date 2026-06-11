@@ -11,7 +11,7 @@ type WorkspaceActionEvent = CustomEvent<{
 }>;
 
 export function ProjectMapToolbar({ projectId, projectName }: { projectId: number; projectName: string }) {
-  const [busyAction, setBusyAction] = useState<"export" | "save" | null>(null);
+  const [busyAction, setBusyAction] = useState<"export" | "geojson" | "save" | null>(null);
   const [message, setMessage] = useState("Last saved: ready");
 
   useEffect(() => {
@@ -29,6 +29,28 @@ export function ProjectMapToolbar({ projectId, projectName }: { projectId: numbe
     setBusyAction(type);
     setMessage(type === "export" ? "Membuat screenshot peta..." : "Menyimpan view project...");
     window.dispatchEvent(new CustomEvent("sigmanta:workspace-command", { detail: { type } }));
+  }
+
+  async function exportGeoJson() {
+    setBusyAction("geojson");
+    setMessage("Membuat GeoJSON...");
+    const response = await fetch(`/api/projects/${projectId}/export`, { method: "POST" });
+    if (!response.ok) {
+      setMessage("Export GeoJSON gagal.");
+      setBusyAction(null);
+      return;
+    }
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `sigmanta-${projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.geojson`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setMessage("GeoJSON berhasil didownload.");
+    setBusyAction(null);
   }
 
   return (
@@ -52,6 +74,14 @@ export function ProjectMapToolbar({ projectId, projectName }: { projectId: numbe
         type="button"
       >
         <Download size={16} /> {busyAction === "export" ? "Exporting" : "Export"}
+      </button>
+      <button
+        className="brutal-button bg-earth-light px-4 py-3 disabled:cursor-not-allowed disabled:opacity-65"
+        disabled={busyAction === "geojson"}
+        onClick={exportGeoJson}
+        type="button"
+      >
+        <Download size={16} /> {busyAction === "geojson" ? "Exporting" : "GeoJSON"}
       </button>
       <button
         className="brutal-button bg-earth-dark px-4 py-3 text-earth-light disabled:cursor-not-allowed disabled:opacity-65"

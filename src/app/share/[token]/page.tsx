@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 
 export default async function SharePreviewPage({ params }: { params: Promise<{ token: string }> }) {
   const user = await getCurrentUserRecord();
-  if (!user) redirect("/login");
 
   const { token } = await params;
   const shareLink = await prisma.projectShareLink.findUnique({
@@ -69,7 +68,13 @@ export default async function SharePreviewPage({ params }: { params: Promise<{ t
               <p className="mb-4 text-sm leading-6 text-earth-dark/70">
                 Project akan disalin menjadi project baru milik akun kamu. Perubahan setelah disalin tidak realtime dan tidak mengubah project sumber.
               </p>
-              <ImportProjectButton token={token} />
+              {user ? (
+                <ImportProjectButton token={token} />
+              ) : (
+                <a className="brutal-button bg-earth-dark px-6 py-4 text-earth-light" href={`/login?next=/share/${token}`}>
+                  Login untuk Import
+                </a>
+              )}
             </div>
           </div>
         </div>

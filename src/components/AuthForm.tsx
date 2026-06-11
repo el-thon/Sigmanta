@@ -46,7 +46,8 @@ export function AuthForm({ mode }: AuthFormProps) {
       return;
     }
 
-    router.push("/dashboard");
+    const nextUrl = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") : null;
+    router.push(nextUrl || "/dashboard");
     router.refresh();
   }
 

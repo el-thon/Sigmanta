@@ -1,8 +1,9 @@
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import { MotionReveal } from "@/components/MotionReveal";
+import { ProjectShareDialog } from "@/components/ProjectShareDialog";
 import { getCurrentUserRecord } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { Download, MapPin, Plus, Search, Share2 } from "lucide-react";
+import { Download, MapPin, Plus, Search } from "lucide-react";
 import { redirect } from "next/navigation";
 
 export default async function ProjectsPage() {
@@ -75,8 +76,11 @@ export default async function ProjectsPage() {
                     </div>
                     <div className="mt-6 flex gap-3">
                       <a className="brutal-button flex-1 bg-earth-light px-4 py-3" href={`/projects/${project.id}/map`}>Buka Peta</a>
-                      <button className="brutal-button bg-earth-light p-3" aria-label="Bagikan"><Share2 size={17} /></button>
-                      <button className="brutal-button bg-earth-light p-3" aria-label="Unduh"><Download size={17} /></button>
+                      <a className="brutal-button bg-earth-light p-3" aria-label="Detail" href={`/projects/${project.id}`}><MapPin size={17} /></a>
+                      <ProjectShareDialog projectId={project.id} projectName={project.name} />
+                      <form action={`/api/projects/${project.id}/export`} method="post">
+                        <button className="brutal-button bg-earth-light p-3" aria-label="Unduh GeoJSON" type="submit"><Download size={17} /></button>
+                      </form>
                     </div>
                   </div>
                 </article>
