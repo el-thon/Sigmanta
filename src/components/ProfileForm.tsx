@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import { Save } from "lucide-react";
 
 type ProfileUser = {
@@ -17,6 +17,23 @@ type ProfileUser = {
 
 export function ProfileForm({ user }: { user: ProfileUser }) {
   const [message, setMessage] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const avatarPreview = previewUrl ?? user.avatarUrl;
+
+  useEffect(() => {
+    return () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  function previewAvatar(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    setMessage("");
+    setPreviewUrl((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return file ? URL.createObjectURL(file) : null;
+    });
+  }
 
   async function submitProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -32,11 +49,11 @@ export function ProfileForm({ user }: { user: ProfileUser }) {
     <form onSubmit={submitProfile} className="mt-8 grid gap-6 lg:grid-cols-[320px_1fr]">
       <section className="brutal-card bg-earth-light p-6">
         <div className="mx-auto grid h-36 w-36 place-items-center overflow-hidden border-2 border-earth-dark bg-earth-paper font-display text-5xl font-black shadow-[4px_4px_0_#1c1a14]">
-          {user.avatarUrl ? <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" /> : user.name.slice(0, 1)}
+          {avatarPreview ? <img src={avatarPreview} alt="" className="h-full w-full object-cover" /> : user.name.slice(0, 1)}
         </div>
         <label className="mt-6 block">
           <span className="label-mono">Foto Profil</span>
-          <input name="avatar" type="file" accept="image/*" className="brutal-card mt-2 w-full bg-earth-light px-4 py-3 text-sm outline-none file:mr-3 file:border-0 file:bg-earth-dark file:px-3 file:py-2 file:text-earth-light" />
+          <input name="avatar" type="file" accept="image/*" onChange={previewAvatar} className="brutal-card mt-2 w-full bg-earth-light px-4 py-3 text-sm outline-none file:mr-3 file:border-0 file:bg-earth-dark file:px-3 file:py-2 file:text-earth-light" />
         </label>
         {message ? <p className="mt-4 border-2 border-moss bg-moss-light px-3 py-2 text-sm font-bold text-moss">{message}</p> : null}
       </section>
