@@ -1,4 +1,4 @@
-# DESIGN.md — SIGMANTA
+# SRS.md — SIGMANTA
 
 ## 0. Identitas Sistem
 
@@ -18,8 +18,8 @@ SIGMANTA adalah platform WebGIS yang mengintegrasikan pemetaan lahan, identifika
 3. Menyediakan fitur pengelolaan titik mitigasi seperti posko, titik kumpul, alat berat, fasilitas kesehatan, dan sumber daya pendukung.
 4. Mendukung digitasi objek spasial berupa polygon, rectangle, circle, marker, dan polyline.
 5. Menyimpan geometri objek dalam format JSON/GeoJSON.
-6. Menyimpan atribut fleksibel dalam metadata JSON.
-7. Menyediakan output peta interaktif, data GeoJSON, rekap luas area, dan laporan ringkas project.
+6. Menyimpan atribut objek melalui field terstruktur yang diisi dari UI, seperti nama, label, kategori, tingkat risiko, deskripsi, dan catatan.
+7. Menyediakan output peta interaktif, data GeoJSON, rekap luas area, dan laporan PDF ringkas project.
 8. Mendukung mekanisme berbagi project melalui link yang akan mengimpor atau menyalin project ke akun personal penerima.
 
 ## 3. Konsep Utama Sistem
@@ -42,11 +42,11 @@ Fitur MVP yang harus tersedia:
 8. Segmentasi lahan.
 9. Segmentasi zona rawan bencana.
 10. Titik mitigasi dan marker fasilitas penting.
-11. Metadata JSON untuk setiap objek peta.
+11. Form atribut objek peta berbasis UI.
 12. Layer control.
 13. Popup atau panel detail objek.
 14. Export GeoJSON.
-15. Export gambar peta sederhana.
+15. Export PDF laporan peta.
 16. Dashboard ringkasan project.
 
 ## 5. Fitur Non-MVP
@@ -55,16 +55,15 @@ Fitur pengembangan:
 
 1. 3D Earth cinematic penuh.
 2. Animasi zoom dari Earth menuju lokasi project.
-3. Export PDF lengkap.
+3. Export PDF lengkap dengan layout peta kartografis.
 4. Import GeoJSON, KML, atau Shapefile.
 5. Analisis jarak ke titik mitigasi atau sumber daya terdekat.
 6. Skoring prioritas mitigasi otomatis.
 7. Riwayat perubahan objek peta.
-8. Template metadata dinamis.
-9. Integrasi data DEM/elevasi asli.
-10. Integrasi data cuaca, sensor, atau API kebencanaan.
-11. Validasi data oleh petugas.
-12. Versioning project.
+8. Integrasi data DEM/elevasi asli.
+9. Integrasi data cuaca, sensor, atau API kebencanaan.
+10. Validasi data oleh petugas.
+11. Versioning project.
 
 ## 6. Aktor Sistem
 
@@ -136,7 +135,7 @@ Hak akses:
    - Category
    - Map objects
    - Geometry
-   - Metadata
+   - Atribut objek
    - Label config
    - Style config
 6. Project hasil import diberi owner baru sesuai user penerima.
@@ -170,7 +169,7 @@ Hak akses:
 4. Untuk polygon, rectangle, dan circle, sistem menghitung luas area.
 5. Untuk polyline, sistem menghitung panjang garis.
 6. Semua geometry disimpan dalam format JSON/GeoJSON.
-7. Metadata tambahan disimpan dalam format JSON.
+7. Atribut tambahan yang dibutuhkan user diisi melalui field UI yang jelas, bukan editor JSON manual.
 
 ## 11. Segmentasi Lahan
 
@@ -188,16 +187,13 @@ Kategori awal:
 8. Perairan
 9. Jalan
 
-Contoh metadata lahan:
+Contoh atribut lahan yang diisi dari UI:
 
-```json
-{
-  "status_lahan": "produktif",
-  "jenis_tanaman": "padi",
-  "sistem_irigasi": "teknis",
-  "catatan": "saluran air perlu diperbaiki"
-}
-```
+1. Nama objek lahan.
+2. Label peta.
+3. Kategori lahan.
+4. Deskripsi kondisi lahan.
+5. Catatan lapangan.
 
 ## 12. Zona Rawan Bencana
 
@@ -223,16 +219,14 @@ Tingkat risiko:
 4. Tinggi
 5. Ekstrem
 
-Contoh metadata bencana:
+Contoh atribut zona rawan bencana yang diisi dari UI:
 
-```json
-{
-  "riwayat_kejadian": "sering",
-  "jumlah_kk_terdampak": 85,
-  "akses_jalan": "rawan terputus",
-  "rekomendasi": "siapkan posko dan perahu karet"
-}
-```
+1. Nama zona.
+2. Label peta.
+3. Jenis bencana.
+4. Tingkat risiko.
+5. Deskripsi kondisi.
+6. Catatan atau rekomendasi lapangan.
 
 ## 13. Titik Mitigasi dan Marker
 
@@ -251,16 +245,13 @@ Kategori marker:
 9. Alat berat
 10. Sumber air
 
-Contoh metadata titik mitigasi:
+Contoh atribut titik mitigasi dan marker yang diisi dari UI:
 
-```json
-{
-  "jenis": "posko",
-  "kapasitas": 120,
-  "status": "siap digunakan",
-  "catatan_akses": "jalan utama dapat dilalui kendaraan logistik"
-}
-```
+1. Nama titik.
+2. Label peta.
+3. Kategori marker atau fasilitas.
+4. Deskripsi fungsi titik.
+5. Catatan akses atau kondisi lapangan.
 
 ## 14. Tech Stack
 
@@ -312,9 +303,36 @@ Contoh metadata titik mitigasi:
 6. Rekap luas area berdasarkan kategori.
 7. Rekap luas area rawan berdasarkan tingkat risiko.
 8. Export GeoJSON.
-9. Export PNG.
+9. Export PDF laporan peta.
 10. Project hasil import dari share link.
 11. Laporan ringkas kondisi wilayah.
+
+## 16.1 Spesifikasi Export PDF Laporan Peta
+
+Export PDF bukan sekadar gambar peta. PDF harus menjadi layout laporan peta yang dapat dipakai sebagai lampiran atau dokumen presentasi.
+
+Elemen minimal PDF:
+
+1. Judul project dan nama lokasi.
+2. Gambar peta utama sesuai viewport atau area project yang sedang dibuka.
+3. Overlay objek peta yang terlihat, termasuk segmentasi lahan, zona rawan bencana, marker, titik mitigasi, dan jalur evakuasi bila ada.
+4. Legenda warna berdasarkan layer, kategori, dan tingkat risiko yang muncul pada peta.
+5. Informasi jumlah objek terlihat.
+6. Ringkasan luas area terpetakan.
+7. Ringkasan luas area rawan berdasarkan tingkat risiko.
+8. Informasi titik mitigasi atau marker yang tampil.
+9. Skala peta atau estimasi jarak.
+10. Arah utara.
+11. Tanggal dan waktu export.
+12. Identitas pembuat export atau nama user.
+
+Layout PDF mengikuti gaya laporan peta kartografis:
+
+1. Area peta utama berada di sisi kiri atau bagian dominan halaman.
+2. Panel kanan atau bawah berisi judul, ringkasan, legenda, dan informasi project.
+3. Bila memungkinkan, tampilkan grid/label koordinat pada tepi peta.
+4. Warna legenda harus konsisten dengan warna objek di workspace.
+5. PDF harus tetap terbaca saat dicetak pada ukuran A4 landscape.
 
 ## 17. ERD Konseptual Revisi
 
@@ -364,7 +382,7 @@ Perubahan penting dari konsep sebelumnya:
 5. User masuk ke workspace peta.
 6. User membuat segmentasi lahan, zona rawan bencana, dan titik mitigasi.
 7. Sistem menghitung luas atau panjang objek.
-8. Sistem menyimpan geometry dan metadata.
+8. Sistem menyimpan geometry dan atribut objek.
 9. User dapat export project.
 10. User dapat membuat share link.
 11. Penerima membuka share link.
@@ -399,7 +417,7 @@ Perubahan penting dari konsep sebelumnya:
 1. Generate share token.
 2. Preview share link.
 3. Import project ke akun personal.
-4. Clone layer, category, map object, geometry, metadata, label, dan style.
+4. Clone layer, category, map object, geometry, atribut objek, label, dan style.
 5. Catat activity log.
 
 ### Phase 4 — Map Workspace
@@ -412,7 +430,7 @@ Perubahan penting dari konsep sebelumnya:
 ### Phase 5 — Map Object CRUD
 
 1. Simpan geometry.
-2. Simpan metadata.
+2. Simpan atribut objek.
 3. Edit object.
 4. Delete object.
 5. Render ulang object.
@@ -428,7 +446,7 @@ Perubahan penting dari konsep sebelumnya:
 ### Phase 7 — Export dan Dashboard Summary
 
 1. Export GeoJSON.
-2. Export PNG.
+2. Export PDF laporan peta.
 3. Ringkasan jumlah objek.
 4. Ringkasan luas area.
 

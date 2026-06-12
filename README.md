@@ -10,7 +10,7 @@ SIGMANTA adalah platform WebGIS yang mengintegrasikan pemetaan lahan, identifika
 - ORM: Prisma
 - Auth: custom JWT berbasis cookie HTTP-only
 - Database: Supabase PostgreSQL atau PostgreSQL lokal
-- Storage: local filesystem (`public/uploads`)
+- Storage: Cloudflare R2
 - Deployment: Vercel + Supabase
 
 ## Cara Menjalankan dengan Docker
@@ -33,16 +33,19 @@ Akses aplikasi di:
 http://localhost:3000
 ```
 
-## Konfigurasi Supabase Database dan Local Storage
+## Konfigurasi Database dan Cloudflare R2
 
-Gunakan Supabase hanya untuk database PostgreSQL melalui `DATABASE_URL`. Storage disimpan lokal di filesystem project/server:
+Gunakan Supabase atau PostgreSQL lokal melalui `DATABASE_URL`. File upload, seperti foto profil, disimpan di Cloudflare R2:
 
 ```bash
-LOCAL_STORAGE_DIR="public/uploads"
-NEXT_PUBLIC_LOCAL_STORAGE_URL="/uploads"
+R2_ENDPOINT="https://<ACCOUNT_ID>.r2.cloudflarestorage.com"
+R2_BUCKET="sigmanta-uploads"
+R2_ACCESS_KEY_ID="<ACCESS_KEY_ID>"
+R2_SECRET_ACCESS_KEY="<SECRET_ACCESS_KEY>"
+R2_PUBLIC_URL="/api/storage"
 ```
 
-Catatan deployment: local storage cocok untuk development atau server dengan disk persisten. Jika deploy ke platform serverless, file upload lokal dapat hilang saat instance diganti.
+`R2_PUBLIC_URL="/api/storage"` membuat file dibaca melalui route aplikasi sehingga preview tetap stabil di local dan Vercel. Setelah custom domain R2 siap, nilai ini bisa diganti ke URL CDN, misalnya `https://cdn.domain.com`.
 
 ## Struktur Awal
 

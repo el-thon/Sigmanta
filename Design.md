@@ -62,7 +62,7 @@
 
 ```
 Display font:  "Fraunces" (variable, Google Fonts) — untuk heading besar, hero title
-Body font:     "DM Mono" (Google Fonts) — untuk teks UI, label peta, metadata
+Body font:     "DM Mono" (Google Fonts) — untuk teks UI, label peta, form atribut, dan legenda
 Accent:        "Instrument Serif" italic — untuk tagline, quote, kalimat hero
 ```
 
@@ -232,7 +232,7 @@ Semua yang Kamu Butuhkan."
 ├─────────────┬────────────┴────────────┬────────────┤
 │  TILE D     │  TILE E (col-6)         │  TILE F    │
 │  Export     │  Digitasi Multi-Bentuk  │  Titik     │
-│  GeoJSON    │  Polygon, Circle, dll   │  Mitigasi  │
+│  PDF/GeoJSON│  Polygon, Circle, dll   │  Mitigasi  │
 └─────────────┴─────────────────────────┴────────────┘
 ```
 
@@ -250,7 +250,7 @@ Layout: horizontal step-by-step dengan connector line tipis.
 1. Buat Project
 2. Buka Workspace Peta
 3. Gambar & Segmentasi
-4. Tambahkan Metadata
+4. Isi Atribut Objek
 5. Export & Bagikan
 
 Animasi: saat scroll masuk viewport, setiap step muncul berurutan dengan `staggered animation-delay` (0ms, 150ms, 300ms, 450ms, 600ms).
@@ -472,7 +472,61 @@ Bento grid 3 kolom untuk daftar project:
 
 ---
 
-## 10. Komponen UI Kunci
+## 10. Export PDF Laporan Peta
+
+Export PDF harus terasa seperti lampiran peta profesional, bukan hanya screenshot mentah dari browser. Layoutnya mengikuti pola kartografis: peta dominan, legenda jelas, blok identitas, skala, arah utara, dan ringkasan data yang berasal dari objek pada peta.
+
+### Layout PDF A4 Landscape
+
+```
+┌──────────────────────────────────────────────┬───────────────────┐
+│                                              │  LOGO / IDENTITAS │
+│                                              │  Project, User    │
+│                                              ├───────────────────┤
+│              AREA PETA UTAMA                 │  RINGKASAN DATA   │
+│  - objek segmentasi                          │  - jumlah objek   │
+│  - zona risiko                               │  - luas area      │
+│  - marker/titik mitigasi                     │  - risiko tinggi  │
+│  - jalur evakuasi                            ├───────────────────┤
+│                                              │  LEGENDA          │
+│                                              │  Layer/Kategori   │
+│                                              │  Tingkat Risiko   │
+├──────────────────────────────────────────────┴───────────────────┤
+│  Arah utara | skala jarak | tanggal export | sumber data project │
+└──────────────────────────────────────────────────────────────────┘
+```
+
+### Elemen Visual Wajib
+
+1. **Judul peta**: nama project sebagai heading utama, lokasi sebagai subheading.
+2. **Peta utama**: gambar viewport peta yang sedang diexport, termasuk overlay objek yang aktif.
+3. **Legenda**: warna dan label layer, kategori lahan, jenis bencana, dan tingkat risiko yang muncul.
+4. **Ringkasan berdasarkan gambar peta**: jumlah objek terlihat, luas total area terlihat, jumlah zona risiko, jumlah titik mitigasi, dan estimasi rute bila ada.
+5. **Skala**: bar skala horizontal seperti `0 | 2.5 | 5 | 7.5 | 10 km` atau estimasi sesuai zoom.
+6. **Arah utara**: icon north arrow sederhana, hitam-putih, ditempatkan di area peta.
+7. **Grid atau label koordinat**: label koordinat tepi peta bila memungkinkan, cukup ringkas agar tidak mengganggu objek.
+8. **Blok identitas**: nama user/exporter, tanggal export, nama sistem SIGMANTA, dan opsional logo/institusi.
+9. **Inset/overview map opsional**: peta kecil lokasi umum project bila data tersedia.
+
+### Gaya Visual PDF
+
+- Background dominan putih atau `earth-light` agar mudah dicetak.
+- Peta memakai border tipis hitam, bukan brutal shadow besar.
+- Panel informasi kanan/bawah boleh memakai border 1-2px dengan spacing rapat.
+- Legenda harus memakai swatch warna yang sama dengan objek di workspace.
+- Teks laporan memakai DM Mono untuk label teknis dan Fraunces untuk judul.
+- PDF harus tetap terbaca saat dicetak pada A4 landscape.
+
+### Anti-Pattern Export PDF
+
+- Jangan export hanya gambar canvas tanpa judul, legenda, atau ringkasan.
+- Jangan tampilkan field JSON mentah di PDF.
+- Jangan membuat legenda berisi layer yang tidak sedang tampil.
+- Jangan memakai efek UI seperti shadow brutal berlebihan di dokumen cetak.
+
+---
+
+## 11. Komponen UI Kunci
 
 ### Status Badge
 
@@ -537,25 +591,51 @@ Bento grid 3 kolom untuk daftar project:
 }
 ```
 
-### Metadata JSON Panel
+### Form Atribut Objek
+
+User tidak perlu mengisi JSON manual. Semua atribut objek harus diatur melalui field UI yang jelas agar cocok untuk petugas lapangan dan pengguna non-teknis.
+
+Field umum:
+
+1. Nama objek.
+2. Label peta.
+3. Kategori.
+4. Tingkat risiko, khusus zona rawan bencana.
+5. Deskripsi.
+6. Catatan lapangan.
 
 ```css
-.metadata-panel {
-  background: var(--color-earth-dark);
-  color: var(--color-moss-light);
-  font-family: 'DM Mono', monospace;
-  font-size: 0.8rem;
-  border-radius: 3px;
+.object-attribute-panel {
   border: 2px solid var(--color-border-brutal);
+  background: var(--color-earth-light);
   padding: 1rem;
-  overflow-x: auto;
-  line-height: 1.7;
+  display: grid;
+  gap: 0.875rem;
+}
+
+.object-attribute-panel label {
+  font-family: 'DM Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.object-attribute-panel input,
+.object-attribute-panel select,
+.object-attribute-panel textarea {
+  border: 2px solid var(--color-border-brutal);
+  background: var(--color-earth-light);
+  font-family: 'DM Mono', monospace;
+  font-size: 0.875rem;
+  border-radius: 3px;
+  padding: 10px 14px;
 }
 ```
 
 ---
 
-## 11. Mood & Referensi Visual
+## 12. Mood & Referensi Visual
 
 **Referensi estetika yang dicari:**
 - Tone warna: kertas peta topografi lama, sepia-earth, hijau vegetasi muted
@@ -578,7 +658,7 @@ Bento grid 3 kolom untuk daftar project:
 
 ---
 
-## 12. Implementasi Teknis (Next.js + Tailwind)
+## 13. Implementasi Teknis (Next.js + Tailwind)
 
 ### Font Setup (next/font atau Google Fonts link)
 
@@ -674,7 +754,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
 
 ---
 
-## 13. Ringkasan Deliverable Desain
+## 14. Ringkasan Deliverable Desain
 
 Ketika mengimplementasikan prompt ini, hasil akhir yang diharapkan:
 
@@ -683,6 +763,7 @@ Ketika mengimplementasikan prompt ini, hasil akhir yang diharapkan:
 | Landing `/` | Hero 3D globe + typewriter cycling, bento feature grid, scroll-reveal section, topographic texture background |
 | Dashboard `/dashboard` | Sidebar brutal, bento project grid, status badge earthy |
 | Workspace `/projects/[id]/map` | Split-panel layout, glass overlay panel, Leaflet CartoDB tile |
+| Export PDF | Layout A4 landscape berisi peta, legenda, skala, arah utara, ringkasan data, dan identitas export |
 | Share Preview `/share/[token]` | Card preview project, CTA import brutal button |
 | Auth `/login`, `/register` | Form minimal, brutal input + button, half-screen ilustrasi peta |
 
