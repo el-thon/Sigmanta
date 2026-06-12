@@ -1,10 +1,9 @@
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
 type R2StorageConfig = {
   endpoint: string;
-  region: string;
   bucket: string;
   accessKeyId: string;
   secretAccessKey: string;
@@ -22,7 +21,6 @@ function requiredEnv(name: string) {
 function getR2StorageConfig(): R2StorageConfig {
   return {
     endpoint: requiredEnv("R2_ENDPOINT"),
-    region: process.env.R2_REGION ?? "auto",
     bucket: requiredEnv("R2_BUCKET"),
     accessKeyId: requiredEnv("R2_ACCESS_KEY_ID"),
     secretAccessKey: requiredEnv("R2_SECRET_ACCESS_KEY"),
@@ -34,7 +32,7 @@ function getR2Client(config: R2StorageConfig) {
   if (!r2Client) {
     r2Client = new S3Client({
       endpoint: config.endpoint,
-      region: config.region,
+      region: "auto",
       credentials: {
         accessKeyId: config.accessKeyId,
         secretAccessKey: config.secretAccessKey,
@@ -72,4 +70,14 @@ export async function saveLocalUpload(file: File, folder = "") {
     path: key,
     url: getPublicStorageUrl(key),
   };
+}
+
+export async function getStoredObject(filePath: string) {
+  const config = getR2StorageConfig();
+  const key = filePath.replace(/\\/g, "/").replace(/^\//, "");
+
+  return getR2Client(config).send(new GetObjectCommand({
+    Bucket: config.bucket,
+    Key: key,
+  }));
 }
