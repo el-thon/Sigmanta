@@ -34,16 +34,20 @@ export default async function ProjectsPage() {
             </a>
           </div>
 
-          <div className="mt-9 grid gap-4 md:grid-cols-[1fr_170px_180px_160px]">
+          <div className="mt-9 grid gap-4 md:grid-cols-[minmax(260px,1fr)_190px_200px_160px]">
             <label className="brutal-card flex items-center gap-3 bg-earth-light px-4 py-3">
               <Search size={19} />
               <input className="w-full bg-transparent outline-none" placeholder="Cari ID Project, Nama, atau Wilayah..." />
             </label>
-            <select className="brutal-card bg-earth-light px-4 py-3 font-bold uppercase outline-none">
-              <option>Status: Semua</option>
+            <select className="brutal-card min-w-0 bg-earth-light px-4 py-3 font-bold uppercase outline-none">
+              <option>Semua Status</option>
+              <option>Active</option>
+              <option>Draft</option>
+              <option>Archived</option>
+              <option>Imported</option>
             </select>
-            <select className="brutal-card bg-earth-light px-4 py-3 font-bold uppercase outline-none">
-              <option>Wilayah: Semua</option>
+            <select className="brutal-card min-w-0 bg-earth-light px-4 py-3 font-bold uppercase outline-none">
+              <option>Semua Wilayah</option>
             </select>
             <input className="brutal-card bg-earth-light px-4 py-3 font-bold uppercase outline-none" placeholder="MM/DD/YYYY" />
           </div>
@@ -52,39 +56,35 @@ export default async function ProjectsPage() {
             {projects.map((project, index) => (
               <MotionReveal key={project.id} delay={index * 0.06} className={index === 0 ? "lg:col-span-2" : ""}>
                 <article className={`brutal-card brutal-card-hover overflow-hidden bg-earth-light ${index === 0 ? "grid md:grid-cols-[0.9fr_1fr]" : ""}`}>
-                  <div className="relative min-h-52 border-b-2 border-earth-dark bg-moss-light md:border-b-0 md:border-r-2 [background-image:linear-gradient(135deg,rgba(24,95,165,.35),rgba(59,109,17,.55)),repeating-linear-gradient(45deg,rgba(28,26,20,.16)_0_1px,transparent_1px_20px)]">
-                    <span className="absolute left-4 top-4 border-2 border-earth-dark bg-hazard px-3 py-1 text-xs font-bold uppercase text-earth-light">
-                      High Risk
-                    </span>
-                  </div>
-                  <div className="p-6">
-                    <div className="flex justify-between gap-3">
-                      <span className="border border-earth-dark px-3 py-1 text-xs font-bold uppercase">ID-{String(project.id).padStart(4, "0")}</span>
-                      <span className="border-2 border-moss bg-moss-light px-3 py-1 text-xs font-bold uppercase text-moss">{project.status}</span>
-                    </div>
-                    <h2 className="font-display mt-6 text-3xl font-black leading-tight">{project.name}</h2>
-                    <p className="mt-4 line-clamp-3 min-h-16 text-sm leading-6 text-earth-dark/70">{project.description || "Belum ada deskripsi project."}</p>
-                    <div className="mt-5 grid grid-cols-2 gap-4 border-y border-earth-dark/15 py-4 text-sm">
-                      <div>
-                        <p className="label-mono text-earth-dark/55">Wilayah</p>
-                        <p className="mt-1 font-bold">{project.locationName || "Belum diatur"}</p>
+                    <div className="relative min-h-52 border-b-2 border-earth-dark bg-moss-light md:border-b-0 md:border-r-2 [background-image:linear-gradient(135deg,rgba(24,95,165,.35),rgba(59,109,17,.55)),repeating-linear-gradient(45deg,rgba(28,26,20,.16)_0_1px,transparent_1px_20px)]" />
+                    <div className="p-6">
+                      <div className="flex justify-between gap-3">
+                        <span className="border border-earth-dark px-3 py-1 text-xs font-bold uppercase">ID-{String(project.id).padStart(4, "0")}</span>
+                        <span className="border-2 border-moss bg-moss-light px-3 py-1 text-xs font-bold uppercase text-moss">{project.status}</span>
                       </div>
-                      <div>
-                        <p className="label-mono text-earth-dark/55">Update Terakhir</p>
-                        <p className="mt-1 font-bold">{project.updatedAt.toLocaleDateString("id-ID")}</p>
+                      <h2 className="font-display mt-6 text-3xl font-black leading-tight">{project.name}</h2>
+                      <p className="mt-4 line-clamp-3 min-h-16 text-sm leading-6 text-earth-dark/70">{project.description || "Belum ada deskripsi project."}</p>
+                      <div className="mt-5 grid grid-cols-2 gap-4 border-y border-earth-dark/15 py-4 text-sm">
+                        <div>
+                          <p className="label-mono text-earth-dark/55">Wilayah</p>
+                          <p className="mt-1 font-bold">{project.locationName || "Belum diatur"}</p>
+                        </div>
+                        <div>
+                          <p className="label-mono text-earth-dark/55">Update Terakhir</p>
+                          <p className="mt-1 font-bold">{project.updatedAt.toLocaleDateString("id-ID")}</p>
+                        </div>
+                      </div>
+                      <div className="mt-6 flex gap-3">
+                        <a className="brutal-button flex-1 bg-earth-light px-4 py-3" href={`/projects/${project.id}/map`}>Buka Peta</a>
+                        <a className="brutal-button bg-earth-light p-3" aria-label="Detail" href={`/projects/${project.id}`}><MapPin size={17} /></a>
+                        <ProjectShareDialog projectId={project.id} projectName={project.name} />
+                        <form action={`/api/projects/${project.id}/export`} method="post">
+                          <button className="brutal-button bg-earth-light p-3" aria-label="Unduh GeoJSON" type="submit"><Download size={17} /></button>
+                        </form>
                       </div>
                     </div>
-                    <div className="mt-6 flex gap-3">
-                      <a className="brutal-button flex-1 bg-earth-light px-4 py-3" href={`/projects/${project.id}/map`}>Buka Peta</a>
-                      <a className="brutal-button bg-earth-light p-3" aria-label="Detail" href={`/projects/${project.id}`}><MapPin size={17} /></a>
-                      <ProjectShareDialog projectId={project.id} projectName={project.name} />
-                      <form action={`/api/projects/${project.id}/export`} method="post">
-                        <button className="brutal-button bg-earth-light p-3" aria-label="Unduh GeoJSON" type="submit"><Download size={17} /></button>
-                      </form>
-                    </div>
-                  </div>
-                </article>
-              </MotionReveal>
+                  </article>
+                </MotionReveal>
             ))}
             {!projects.length ? (
               <div className="brutal-card col-span-full p-8">

@@ -101,6 +101,21 @@ type CandidateRoute = {
   durationS: number;
   geometry: Feature;
 };
+type ReportLegendEntry = {
+  label: string;
+  color: string;
+  count: number;
+};
+type PdfReportOptions = {
+  projectName: string;
+  projectLocation: string;
+  infoLines: string[];
+  legendEntries: ReportLegendEntry[];
+  exportedAt: Date;
+  scaleMeters: number | null;
+  mapCenter: L.LatLng;
+  mapBounds: L.LatLngBounds;
+};
 type RouteCandidate = {
   object: WorkspaceMapObject;
   point: [number, number];
@@ -471,6 +486,218 @@ function createPdfBlobFromCanvas(canvas: HTMLCanvasElement) {
   return new Blob(blobParts, { type: "application/pdf" });
 }
 
+function drawWrappedText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number, maxLines = 3) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let line = "";
+
+  words.forEach((word) => {
+    const candidate = line ? `${line} ${word}` : word;
+    if (ctx.measureText(candidate).width <= maxWidth) {
+      line = candidate;
+      return;
+    }
+    if (line) lines.push(line);
+    line = word;
+  });
+  if (line) lines.push(line);
+
+  lines.slice(0, maxLines).forEach((item, index) => {
+    const isLastVisibleLine = index === maxLines - 1 && lines.length > maxLines;
+    const value = isLastVisibleLine ? `${item.slice(0, Math.max(0, item.length - 3))}...` : item;
+    ctx.fillText(value, x, y + index * lineHeight);
+  });
+
+  return Math.min(lines.length, maxLines) * lineHeight;
+}
+
+function drawReportSectionTitle(ctx: CanvasRenderingContext2D, title: string, x: number, y: number) {
+  ctx.fillStyle = "#1c1a14";
+  ctx.font = "700 22px monospace";
+  ctx.fillText(title.toUpperCase(), x, y);
+  ctx.strokeStyle = "#1c1a14";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(x, y + 10);
+  ctx.lineTo(x + 340, y + 10);
+  ctx.stroke();
+}
+
+function niceScaleDistance(maxMeters: number) {
+  const distances = [50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000];
+  return distances.filter((distance) => distance <= maxMeters).pop() ?? distances[0];
+}
+
+function formatScaleDistance(meters: number) {
+  if (meters < 1000) return `${meters} m`;
+  const kilometers = meters / 1000;
+  return `${Number.isInteger(kilometers) ? kilometers.toFixed(0) : kilometers.toFixed(1)} km`;
+}
+
+function drawScaleBar(ctx: CanvasRenderingContext2D, x: number, y: number, mapWidth: number, visibleMeters: number | null) {
+  if (!visibleMeters || visibleMeters <= 0) return;
+  const scaleMeters = niceScaleDistance(visibleMeters * 0.26);
+  const width = Math.max(90, Math.min(280, (scaleMeters / visibleMeters) * mapWidth));
+  const segmentWidth = width / 4;
+
+  ctx.save();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "#1c1a14";
+  ctx.fillStyle = "#1c1a14";
+  ctx.font = "700 18px monospace";
+  ctx.fillText("0", x - 4, y - 12);
+  ctx.fillText(formatScaleDistance(scaleMeters / 2), x + width / 2 - 28, y - 12);
+  ctx.fillText(formatScaleDistance(scaleMeters), x + width - 34, y - 12);
+
+  for (let index = 0; index < 4; index += 1) {
+    ctx.fillStyle = index % 2 === 0 ? "#1c1a14" : "#f5f0e8";
+    ctx.fillRect(x + index * segmentWidth, y, segmentWidth, 24);
+    ctx.strokeRect(x + index * segmentWidth, y, segmentWidth, 24);
+  }
+  ctx.restore();
+}
+
+function drawNorthArrow(ctx: CanvasRenderingContext2D, x: number, y: number) {
+  ctx.save();
+  ctx.fillStyle = "#1c1a14";
+  ctx.strokeStyle = "#1c1a14";
+  ctx.lineWidth = 2;
+  ctx.font = "700 24px monospace";
+  ctx.fillText("N", x - 8, y - 54);
+  ctx.beginPath();
+  ctx.moveTo(x, y - 40);
+  ctx.lineTo(x - 26, y + 36);
+  ctx.lineTo(x, y + 18);
+  ctx.lineTo(x + 26, y + 36);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#f5f0e8";
+  ctx.beginPath();
+  ctx.moveTo(x, y - 26);
+  ctx.lineTo(x, y + 11);
+  ctx.lineTo(x + 15, y + 24);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function createCartographicReportCanvas(mapCanvas: HTMLCanvasElement, options: PdfReportOptions) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1684;
+  canvas.height = 1190;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas laporan PDF tidak tersedia.");
+
+  const page = { x: 48, y: 48, width: 1588, height: 1094 };
+  const mapFrame = { x: 62, y: 72, width: 1092, height: 880 };
+  const sidebar = { x: 1186, y: 72, width: 414, height: 880 };
+  const footer = { x: 62, y: 984, width: 1538, height: 112 };
+
+  ctx.fillStyle = "#f7f5ef";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.strokeStyle = "#1c1a14";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(page.x, page.y, page.width, page.height);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(mapFrame.x, mapFrame.y, mapFrame.width, mapFrame.height);
+  ctx.strokeRect(mapFrame.x, mapFrame.y, mapFrame.width, mapFrame.height);
+
+  const imageAspect = mapCanvas.width / mapCanvas.height;
+  const frameAspect = mapFrame.width / mapFrame.height;
+  let sourceX = 0;
+  let sourceY = 0;
+  let sourceWidth = mapCanvas.width;
+  let sourceHeight = mapCanvas.height;
+  if (imageAspect > frameAspect) {
+    sourceWidth = mapCanvas.height * frameAspect;
+    sourceX = (mapCanvas.width - sourceWidth) / 2;
+  } else {
+    sourceHeight = mapCanvas.width / frameAspect;
+    sourceY = (mapCanvas.height - sourceHeight) / 2;
+  }
+  ctx.drawImage(mapCanvas, sourceX, sourceY, sourceWidth, sourceHeight, mapFrame.x, mapFrame.y, mapFrame.width, mapFrame.height);
+
+  ctx.strokeStyle = "rgba(28,26,20,0.42)";
+  ctx.lineWidth = 1;
+  ctx.font = "700 16px monospace";
+  ctx.fillStyle = "#1c1a14";
+  for (let index = 1; index < 4; index += 1) {
+    const x = mapFrame.x + (mapFrame.width / 4) * index;
+    const longitude = options.mapBounds.getWest() + ((options.mapBounds.getEast() - options.mapBounds.getWest()) / 4) * index;
+    ctx.beginPath();
+    ctx.moveTo(x, mapFrame.y);
+    ctx.lineTo(x, mapFrame.y + mapFrame.height);
+    ctx.stroke();
+    ctx.fillText(`${longitude.toFixed(3)}`, x - 28, mapFrame.y - 14);
+  }
+  for (let index = 1; index < 4; index += 1) {
+    const y = mapFrame.y + (mapFrame.height / 4) * index;
+    const latitude = options.mapBounds.getNorth() - ((options.mapBounds.getNorth() - options.mapBounds.getSouth()) / 4) * index;
+    ctx.beginPath();
+    ctx.moveTo(mapFrame.x, y);
+    ctx.lineTo(mapFrame.x + mapFrame.width, y);
+    ctx.stroke();
+    ctx.fillText(`${latitude.toFixed(3)}`, mapFrame.x - 56, y + 6);
+  }
+
+  drawNorthArrow(ctx, mapFrame.x + 120, mapFrame.y + 122);
+  drawScaleBar(ctx, mapFrame.x + 690, mapFrame.y + mapFrame.height - 58, mapFrame.width, options.scaleMeters);
+
+  ctx.fillStyle = "#f5f0e8";
+  ctx.fillRect(sidebar.x, sidebar.y, sidebar.width, sidebar.height);
+  ctx.strokeStyle = "#1c1a14";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(sidebar.x, sidebar.y, sidebar.width, sidebar.height);
+
+  ctx.fillStyle = "#1c1a14";
+  ctx.font = "900 42px Georgia, serif";
+  drawWrappedText(ctx, options.projectName, sidebar.x + 26, sidebar.y + 58, sidebar.width - 52, 44, 3);
+  ctx.font = "700 18px monospace";
+  ctx.fillStyle = "rgba(28,26,20,0.68)";
+  drawWrappedText(ctx, options.projectLocation || "Lokasi belum diatur", sidebar.x + 26, sidebar.y + 178, sidebar.width - 52, 24, 2);
+
+  let cursorY = sidebar.y + 250;
+  drawReportSectionTitle(ctx, "Ringkasan", sidebar.x + 26, cursorY);
+  cursorY += 44;
+  ctx.font = "700 20px monospace";
+  ctx.fillStyle = "#1c1a14";
+  options.infoLines.slice(2, 7).forEach((line) => {
+    cursorY += drawWrappedText(ctx, line, sidebar.x + 26, cursorY, sidebar.width - 52, 28, 2) + 8;
+  });
+
+  cursorY += 18;
+  drawReportSectionTitle(ctx, "Legenda", sidebar.x + 26, cursorY);
+  cursorY += 46;
+  ctx.font = "700 18px monospace";
+  options.legendEntries.slice(0, 12).forEach((entry) => {
+    ctx.fillStyle = entry.color;
+    ctx.fillRect(sidebar.x + 28, cursorY - 15, 22, 22);
+    ctx.strokeStyle = "#1c1a14";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(sidebar.x + 28, cursorY - 15, 22, 22);
+    ctx.fillStyle = "#1c1a14";
+    drawWrappedText(ctx, `${entry.label} (${entry.count})`, sidebar.x + 62, cursorY + 2, sidebar.width - 92, 21, 2);
+    cursorY += 46;
+  });
+  if (!options.legendEntries.length) {
+    ctx.fillStyle = "rgba(28,26,20,0.64)";
+    ctx.fillText("Tidak ada objek terlihat", sidebar.x + 28, cursorY);
+  }
+
+  ctx.fillStyle = "#1c1a14";
+  ctx.fillRect(footer.x, footer.y, footer.width, footer.height);
+  ctx.fillStyle = "#f5f0e8";
+  ctx.font = "900 30px Georgia, serif";
+  ctx.fillText("SIGMANTA GIS", footer.x + 28, footer.y + 42);
+  ctx.font = "700 17px monospace";
+  ctx.fillText(`Export: ${options.exportedAt.toLocaleString("id-ID")}`, footer.x + 28, footer.y + 78);
+  ctx.fillText(`Center: ${options.mapCenter.lat.toFixed(5)}, ${options.mapCenter.lng.toFixed(5)}`, footer.x + 460, footer.y + 78);
+  ctx.fillText("Sumber: data project dan objek yang aktif pada workspace", footer.x + 900, footer.y + 78);
+
+  return canvas;
+}
+
 function drawGeoJsonObject(ctx: CanvasRenderingContext2D, map: L.Map, object: WorkspaceMapObject, color: string) {
   ctx.save();
   ctx.strokeStyle = color;
@@ -604,11 +831,27 @@ async function renderLeafletViewportCanvas(map: L.Map, objects: WorkspaceMapObje
   return canvas;
 }
 
-async function exportLeafletReportPdf(map: L.Map, objects: WorkspaceMapObject[], getColor: (object: WorkspaceMapObject) => string, projectName: string, infoLines: string[]) {
-  const canvas = await renderLeafletViewportCanvas(map, objects, getColor, infoLines);
-  const blob = createPdfBlobFromCanvas(canvas);
+function getVisibleHorizontalMeters(map: L.Map) {
+  const size = map.getSize();
+  if (!size.x || !size.y) return null;
+  const y = size.y / 2;
+  const left = map.containerPointToLatLng([0, y]);
+  const right = map.containerPointToLatLng([size.x, y]);
+  return map.distance(left, right);
+}
+
+async function exportLeafletReportPdf(map: L.Map, objects: WorkspaceMapObject[], getColor: (object: WorkspaceMapObject) => string, options: Omit<PdfReportOptions, "exportedAt" | "scaleMeters" | "mapCenter" | "mapBounds">) {
+  const mapCanvas = await renderLeafletViewportCanvas(map, objects, getColor);
+  const reportCanvas = createCartographicReportCanvas(mapCanvas, {
+    ...options,
+    exportedAt: new Date(),
+    scaleMeters: getVisibleHorizontalMeters(map),
+    mapCenter: map.getCenter(),
+    mapBounds: map.getBounds(),
+  });
+  const blob = createPdfBlobFromCanvas(reportCanvas);
   const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
-  downloadBlob(blob, `sigmanta-${safeFilename(projectName)}-${timestamp}.pdf`);
+  downloadBlob(blob, `sigmanta-${safeFilename(options.projectName)}-${timestamp}.pdf`);
 }
 
 export function MapWorkspace({
@@ -727,14 +970,39 @@ export function MapWorkspace({
     return layerColor(layer?.layerType, risk);
   }, [draft, layerById, riskById]);
 
+  const pdfLegendEntries = useMemo(() => {
+    const entries = new Map<string, ReportLegendEntry>();
+    exportObjects.forEach((object) => {
+      const layer = layerById.get(object.layerId);
+      const risk = object.riskLevelId ? riskById.get(object.riskLevelId) : null;
+      const color = getObjectColor(object);
+      const label = risk ? `${layer?.name ?? "Risiko"} - ${risk.name}` : layer?.name ?? object.objectType.replace(/_/g, " ");
+      const key = `${label}-${color}`;
+      const current = entries.get(key);
+      entries.set(key, {
+        label,
+        color,
+        count: (current?.count ?? 0) + 1,
+      });
+    });
+    return Array.from(entries.values()).sort((left, right) => left.label.localeCompare(right.label));
+  }, [exportObjects, getObjectColor, layerById, riskById]);
+
   const pdfInfoLines = useMemo(() => {
-    const countByLayer = (layerType: LayerType) => visibleObjects.filter((object) => layerById.get(object.layerId)?.layerType === layerType).length;
+    const countByLayer = (layerType: LayerType) => exportObjects.filter((object) => layerById.get(object.layerId)?.layerType === layerType).length;
+    const totalAreaHa = exportObjects.reduce((sum, object) => sum + Number(object.areaSize ?? 0), 0) / 10000;
+    const highRiskCount = exportObjects.filter((object) => {
+      const risk = object.riskLevelId ? riskById.get(object.riskLevelId) : null;
+      return (risk?.score ?? 0) >= 4;
+    }).length;
     const selectedLayer = selectedObject ? layerById.get(selectedObject.layerId) : null;
     const selectedRisk = selectedObject?.riskLevelId ? riskById.get(selectedObject.riskLevelId) : null;
     const lines = [
       `SIGMANTA GIS - ${projectName}`,
       `Lokasi: ${projectLocation}`,
-      `Objek terlihat: ${visibleObjects.length}`,
+      `Objek terlihat: ${exportObjects.length}`,
+      `Luas terlihat: ${totalAreaHa.toFixed(2)} Ha`,
+      `Risiko tinggi: ${highRiskCount}`,
       `Rawan bencana: ${countByLayer("disaster_risk")} | Segmentasi: ${countByLayer("land_segmentation")}`,
       `Titik mitigasi: ${countByLayer("mitigation_resource")} | Marker: ${countByLayer("marker_label")}`,
     ];
@@ -746,7 +1014,7 @@ export function MapWorkspace({
     }
 
     return lines;
-  }, [layerById, projectLocation, projectName, riskById, selectedObject, visibleObjects]);
+  }, [exportObjects, layerById, projectLocation, projectName, riskById, selectedObject]);
 
   useEffect(() => {
     let cancelled = false;
@@ -857,12 +1125,17 @@ export function MapWorkspace({
 
     dispatchWorkspaceAction("pdf", "pending", "Membuat PDF peta...");
     try {
-      await exportLeafletReportPdf(map, exportObjects, getObjectColor, projectName, pdfInfoLines);
+      await exportLeafletReportPdf(map, exportObjects, getObjectColor, {
+        projectName,
+        projectLocation,
+        infoLines: pdfInfoLines,
+        legendEntries: pdfLegendEntries,
+      });
       dispatchWorkspaceAction("pdf", "success", "PDF peta berhasil didownload.");
     } catch (error) {
       dispatchWorkspaceAction("pdf", "error", error instanceof Error ? error.message : "Export PDF gagal.");
     }
-  }, [exportObjects, getObjectColor, pdfInfoLines, projectName]);
+  }, [exportObjects, getObjectColor, pdfInfoLines, pdfLegendEntries, projectLocation, projectName]);
 
   const saveProjectView = useCallback(async () => {
     const map = mapRef.current;
