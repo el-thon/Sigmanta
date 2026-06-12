@@ -10,6 +10,12 @@ type WorkspaceActionEvent = CustomEvent<{
   message: string;
 }>;
 
+function getDownloadFilename(response: Response, fallback: string) {
+  const disposition = response.headers.get("Content-Disposition");
+  const match = disposition?.match(/filename="([^"]+)"/);
+  return match?.[1] ?? fallback;
+}
+
 export function ProjectMapToolbar({ projectId, projectName }: { projectId: number; projectName: string }) {
   const [busyAction, setBusyAction] = useState<"pdf" | "geojson" | "save" | null>(null);
   const [message, setMessage] = useState("Last saved: ready");
@@ -33,7 +39,7 @@ export function ProjectMapToolbar({ projectId, projectName }: { projectId: numbe
 
   async function exportGeoJson() {
     setBusyAction("geojson");
-    setMessage("Membuat GeoJSON...");
+    setMessage("Membuat paket GeoJSON...");
     const response = await fetch(`/api/projects/${projectId}/export`, { method: "POST" });
     if (!response.ok) {
       setMessage("Export GeoJSON gagal.");
@@ -44,12 +50,12 @@ export function ProjectMapToolbar({ projectId, projectName }: { projectId: numbe
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `sigmanta-${projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.geojson`;
+    link.download = getDownloadFilename(response, `sigmanta-${projectName.toLowerCase().replace(/[^a-z0-9]+/g, "-")}.zip`);
     document.body.appendChild(link);
     link.click();
     link.remove();
     URL.revokeObjectURL(url);
-    setMessage("GeoJSON berhasil didownload.");
+    setMessage("Paket GeoJSON berhasil didownload.");
     setBusyAction(null);
   }
 
@@ -81,7 +87,7 @@ export function ProjectMapToolbar({ projectId, projectName }: { projectId: numbe
         onClick={exportGeoJson}
         type="button"
       >
-        <Download size={16} /> {busyAction === "geojson" ? "Exporting" : "GeoJSON"}
+        <Download size={16} /> {busyAction === "geojson" ? "Exporting" : "GeoJSON ZIP"}
       </button>
       <button
         className="brutal-button bg-earth-dark px-4 py-3 text-earth-light disabled:cursor-not-allowed disabled:opacity-65"
