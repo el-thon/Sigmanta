@@ -12,7 +12,7 @@ type LayerType = "land_segmentation" | "disaster_risk" | "elevation" | "marker_l
 type GeometryType = "point" | "linestring" | "polygon" | "rectangle" | "circle";
 type ObjectType = "land_segment" | "disaster_area" | "elevation_area" | "marker" | "route" | "resource_point" | "radius_area";
 type ToolKey = "land_polygon" | "land_rectangle" | "disaster_polygon" | "disaster_circle" | "mitigation_marker" | "marker_label";
-type ToolTabKey = "disaster" | "segmentation" | "mitigation";
+type ToolTabKey = "disaster" | "segmentation";
 
 export type WorkspaceLayer = {
   id: number;
@@ -193,9 +193,8 @@ const tools: ToolConfig[] = [
 ];
 
 const toolTabs: Array<{ key: ToolTabKey; label: string; toolKeys: ToolKey[] }> = [
-  { key: "disaster", label: "Rawan Bencana", toolKeys: ["disaster_polygon", "disaster_circle"] },
-  { key: "segmentation", label: "Segmentasi", toolKeys: ["land_polygon", "land_rectangle"] },
-  { key: "mitigation", label: "Titik Mitigasi", toolKeys: ["mitigation_marker", "marker_label"] },
+  { key: "disaster", label: "Rawan Bencana", toolKeys: ["disaster_polygon", "disaster_circle", "mitigation_marker"] },
+  { key: "segmentation", label: "Segmentasi", toolKeys: ["land_polygon", "land_rectangle", "marker_label"] },
 ];
 
 function layerColor(layerType?: LayerType, risk?: WorkspaceRiskLevel | null) {
@@ -1432,43 +1431,41 @@ export function MapWorkspace({
                 );
               })}
             </div>
-            {activeToolTab !== "mitigation" ? (
-              <div className="mt-4 border-t-2 border-earth-dark/20 pt-4">
-                <p className="label-mono text-earth-dark/70">Ambil Batas Wilayah</p>
-                <p className="mt-2 text-xs leading-5 text-earth-dark/58">
-                  Cari boundary OSM untuk membuat draft polygon mengikuti bentuk wilayah di peta.
-                </p>
-                <form onSubmit={searchBoundaries} className="mt-3 flex gap-2">
-                  <input
-                    className="min-w-0 flex-1 border-2 border-earth-dark bg-earth-light px-3 py-2 text-sm outline-none"
-                    onChange={(event) => setBoundaryQuery(event.target.value)}
-                    placeholder="Contoh: Kemiling"
-                    value={boundaryQuery}
-                  />
-                  <button className="brutal-button bg-earth-dark px-3 py-2 text-earth-light" disabled={boundaryLoading} type="submit" aria-label="Cari batas wilayah">
-                    <Search size={16} />
-                  </button>
-                </form>
-                {boundaryError ? <p className="mt-3 border-2 border-hazard bg-hazard-light p-3 text-xs leading-5 text-hazard">{boundaryError}</p> : null}
-                {boundaryResults.length ? (
-                  <div className="mt-3 max-h-56 space-y-2 overflow-y-auto pr-1">
-                    {boundaryResults.map((result) => (
-                      <button
-                        key={result.id}
-                        className="w-full border-2 border-earth-dark/25 bg-earth-paper px-3 py-2 text-left text-xs hover:border-earth-dark hover:bg-moss-light"
-                        onClick={() => useBoundaryAsDraft(result)}
-                        type="button"
-                      >
-                        <span className="block font-bold leading-5">{result.name}</span>
-                        <span className="mt-1 block uppercase tracking-[0.06em] text-earth-dark/55">
-                          {result.osmClass || "boundary"} · {result.osmType || "polygon"}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
+            <div className="mt-4 border-t-2 border-earth-dark/20 pt-4">
+              <p className="label-mono text-earth-dark/70">Ambil Batas Wilayah</p>
+              <p className="mt-2 text-xs leading-5 text-earth-dark/58">
+                Cari boundary OSM untuk membuat draft polygon mengikuti bentuk wilayah di peta.
+              </p>
+              <form onSubmit={searchBoundaries} className="mt-3 flex gap-2">
+                <input
+                  className="min-w-0 flex-1 border-2 border-earth-dark bg-earth-light px-3 py-2 text-sm outline-none"
+                  onChange={(event) => setBoundaryQuery(event.target.value)}
+                  placeholder="Contoh: Kemiling"
+                  value={boundaryQuery}
+                />
+                <button className="brutal-button bg-earth-dark px-3 py-2 text-earth-light" disabled={boundaryLoading} type="submit" aria-label="Cari batas wilayah">
+                  <Search size={16} />
+                </button>
+              </form>
+              {boundaryError ? <p className="mt-3 border-2 border-hazard bg-hazard-light p-3 text-xs leading-5 text-hazard">{boundaryError}</p> : null}
+              {boundaryResults.length ? (
+                <div className="mt-3 max-h-56 space-y-2 overflow-y-auto pr-1">
+                  {boundaryResults.map((result) => (
+                    <button
+                      key={result.id}
+                      className="w-full border-2 border-earth-dark/25 bg-earth-paper px-3 py-2 text-left text-xs hover:border-earth-dark hover:bg-moss-light"
+                      onClick={() => useBoundaryAsDraft(result)}
+                      type="button"
+                    >
+                      <span className="block font-bold leading-5">{result.name}</span>
+                      <span className="mt-1 block uppercase tracking-[0.06em] text-earth-dark/55">
+                        {result.osmClass || "boundary"} · {result.osmType || "polygon"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
 
