@@ -1,10 +1,10 @@
 import { AuthForm } from "@/components/AuthForm";
-import { Map, Radar } from "lucide-react";
+import { ArrowLeft, Map, Radar } from "lucide-react";
 
 export default function RegisterPage() {
   return (
-    <main className="page-enter topographic-paper grid min-h-screen grid-cols-1 text-earth-dark lg:grid-cols-2">
-      <section className="flex items-center justify-center px-6 py-12">
+    <main className="auth-transition auth-transition-register topographic-paper grid min-h-screen grid-cols-1 text-earth-dark lg:grid-cols-2">
+      <section className="auth-panel-enter flex items-center justify-center px-6 py-12">
         <div className="w-full max-w-lg">
           <a href="/" className="flex items-center gap-4">
             <span className="grid h-12 w-12 place-items-center border-2 border-earth-dark bg-earth-paper shadow-[4px_4px_0_#1c1a14]">
@@ -15,12 +15,15 @@ export default function RegisterPage() {
           <h1 className="font-display mt-12 text-4xl font-black">Daftar SIGMANTA</h1>
           <p className="mt-3 text-earth-dark/70">Buat akun untuk mulai membuat project pemetaan.</p>
           <AuthForm mode="register" />
+          <a className="brutal-button mt-5 w-full bg-earth-paper px-5 py-4 text-earth-dark" href="/">
+            <ArrowLeft size={17} /> Kembali ke Home
+          </a>
           <p className="mt-8 text-center text-sm text-earth-dark/70">
             Sudah memiliki akun? <a className="font-bold text-moss" href="/login">Masuk</a>
           </p>
         </div>
       </section>
-      <aside className="hidden border-l-2 border-earth-dark/20 p-10 lg:flex lg:items-center">
+      <aside className="auth-visual-enter hidden border-l-2 border-earth-dark/20 p-10 lg:flex lg:items-center">
         <div className="mx-auto max-w-xl">
           <p className="label-mono mb-72 flex items-center gap-2"><Radar size={14} /> Sistem Koordinat Aktif</p>
           <div className="brutal-card bg-earth-light p-10">

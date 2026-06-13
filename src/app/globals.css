@@ -128,6 +128,46 @@ a {
   animation: page-enter 420ms ease both;
 }
 
+.auth-transition {
+  position: relative;
+  overflow: hidden;
+  animation: auth-page-mix 680ms cubic-bezier(0.2, 0.85, 0.2, 1) both;
+}
+
+.auth-transition::before {
+  content: "";
+  position: fixed;
+  inset: -18%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(110deg, transparent 0 36%, rgba(192, 221, 151, 0.46) 36% 48%, transparent 48% 100%),
+    repeating-linear-gradient(35deg, transparent 0 24px, rgba(28, 26, 20, 0.08) 24px 26px);
+  mix-blend-mode: multiply;
+  animation: auth-sweep 760ms cubic-bezier(0.2, 0.85, 0.2, 1) both;
+}
+
+.auth-transition > * {
+  position: relative;
+  z-index: 1;
+}
+
+.auth-panel-enter {
+  animation: auth-panel-in 620ms cubic-bezier(0.2, 0.85, 0.2, 1) both;
+}
+
+.auth-visual-enter {
+  animation: auth-visual-in 720ms cubic-bezier(0.2, 0.85, 0.2, 1) 80ms both;
+}
+
+.auth-transition-register .auth-panel-enter {
+  animation-name: auth-panel-in-reverse;
+}
+
+.auth-transition-register .auth-visual-enter {
+  animation-name: auth-visual-in-reverse;
+}
+
 @keyframes page-enter {
   from {
     opacity: 0;
@@ -138,6 +178,88 @@ a {
     opacity: 1;
     filter: blur(0);
     transform: translateY(0);
+  }
+}
+
+@keyframes auth-page-mix {
+  0% {
+    opacity: 0;
+    filter: blur(6px) saturate(0.8);
+    transform: scale(0.985);
+  }
+  58% {
+    filter: blur(0) saturate(1.08);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0) saturate(1);
+    transform: scale(1);
+  }
+}
+
+@keyframes auth-sweep {
+  0% {
+    opacity: 0;
+    transform: translateX(-34%) skewX(-12deg);
+  }
+  42% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(34%) skewX(-12deg);
+  }
+}
+
+@keyframes auth-panel-in {
+  0% {
+    opacity: 0;
+    transform: translateX(-28px) translateY(16px);
+  }
+  62% {
+    opacity: 1;
+    transform: translateX(6px) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) translateY(0);
+  }
+}
+
+@keyframes auth-panel-in-reverse {
+  0% {
+    opacity: 0;
+    transform: translateX(28px) translateY(16px);
+  }
+  62% {
+    opacity: 1;
+    transform: translateX(-6px) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) translateY(0);
+  }
+}
+
+@keyframes auth-visual-in {
+  0% {
+    opacity: 0;
+    transform: translateX(34px) rotate(0.4deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) rotate(0);
+  }
+}
+
+@keyframes auth-visual-in-reverse {
+  0% {
+    opacity: 0;
+    transform: translateX(-34px) rotate(-0.4deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) rotate(0);
   }
 }
 

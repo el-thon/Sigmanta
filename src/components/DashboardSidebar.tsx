@@ -1,4 +1,5 @@
-import { BarChart3, FolderOpen, Layers, LogOut, Map, Settings, User } from "lucide-react";
+import { LogoutButton } from "@/components/LogoutButton";
+import { BarChart3, FolderOpen, Layers, Map, Settings, User } from "lucide-react";
 
 type DashboardSidebarProps = {
   active?: "dashboard" | "projects" | "map" | "records" | "reports" | "settings" | "help" | "profile";
@@ -68,11 +69,7 @@ export function DashboardSidebar({ active = "dashboard", projectName = "Project 
         <a className="brutal-button w-full bg-earth-dark px-4 py-4 text-earth-light" href="/profile">
           <User size={17} /> Profile
         </a>
-        <form action="/api/auth/logout" method="post">
-          <button className="flex items-center gap-3 text-xs font-bold uppercase tracking-[0.06em] text-earth-dark/70" type="submit">
-            <LogOut size={18} /> Log Out
-          </button>
-        </form>
+        <LogoutButton />
       </div>
     </aside>
   );
