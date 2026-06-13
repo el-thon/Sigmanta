@@ -1330,8 +1330,8 @@ export function MapWorkspace({
   }
 
   return (
-    <div className="grid h-[calc(100vh-66px)] overflow-hidden border-t-2 border-earth-dark bg-earth-light md:grid-cols-[300px_1fr_340px]">
-      <aside className="topographic-paper hidden min-h-0 overflow-y-auto border-r-2 border-earth-dark p-5 md:flex md:flex-col">
+    <div className="grid min-h-[calc(100vh-66px)] border-t-2 border-earth-dark bg-earth-light md:h-[calc(100vh-66px)] md:grid-cols-[300px_1fr_340px] md:overflow-hidden">
+      <aside className="topographic-paper flex max-h-[78vh] min-h-0 flex-col overflow-y-auto border-b-2 border-earth-dark p-5 md:max-h-none md:border-b-0 md:border-r-2">
         <div>
           <h2 className="font-display text-3xl font-black">{projectName}</h2>
           <p className="label-mono mt-2 text-earth-dark/65">{projectLocation}</p>
@@ -1618,7 +1618,7 @@ export function MapWorkspace({
         </MapContainer>
       </section>
 
-      <aside className="topographic-paper hidden min-h-0 overflow-hidden border-l-2 border-earth-dark md:flex md:flex-col">
+      <aside className="topographic-paper flex max-h-[78vh] min-h-0 flex-col overflow-hidden border-t-2 border-earth-dark md:max-h-none md:border-l-2 md:border-t-0">
         <div className="flex items-center justify-between border-b-2 border-earth-dark px-5 py-4">
           <h2 className="font-display text-2xl font-black">{draft ? "Simpan Objek" : "Object Details"}</h2>
           <button aria-label="Tutup panel" onClick={() => setDraft(null)}><X /></button>

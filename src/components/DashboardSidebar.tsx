@@ -24,7 +24,7 @@ export function DashboardSidebar({ active = "dashboard", projectName = "Project 
   const visibleNavItems = userRole === "admin" ? navItems : navItems.filter((item) => item.key !== "settings");
 
   return (
-    <aside className="topographic-paper sticky top-0 flex h-screen min-h-screen w-full shrink-0 flex-col overflow-y-auto border-r-2 border-earth-dark p-5 md:w-64">
+    <aside className="topographic-paper flex h-auto w-full shrink-0 flex-col overflow-y-auto border-b-2 border-earth-dark p-4 md:sticky md:top-0 md:h-screen md:min-h-screen md:w-64 md:border-b-0 md:border-r-2 md:p-5">
       <a href="/" className="flex items-center gap-3">
         <span className="grid h-10 w-10 place-items-center border-2 border-earth-dark bg-moss-light shadow-[4px_4px_0_#1c1a14]">
           <Map size={22} />

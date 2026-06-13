@@ -44,8 +44,8 @@ export default async function DashboardPage() {
   const mappedAreaHa = Number(areaAggregate._sum.areaSize ?? 0) / 10000;
 
   return (
-    <main className="page-enter flex min-h-screen bg-earth-light text-earth-dark">
-      <div className="hidden md:block">
+    <main className="page-enter flex min-h-screen flex-col bg-earth-light text-earth-dark md:flex-row">
+      <div>
         <DashboardSidebar active="dashboard" projectName={user.name} userEmail={user.email} userInstitution={user.institution} userRole={user.role} avatarUrl={user.avatarUrl} />
       </div>
       <section className="topographic-paper flex-1 px-6 py-10 md:px-10">

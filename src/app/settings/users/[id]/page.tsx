@@ -43,8 +43,8 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
   const { password: _, _count, activityLogs, ...safeUser } = user;
 
   return (
-    <main className="page-enter flex min-h-screen bg-earth-light text-earth-dark">
-      <div className="hidden md:block">
+    <main className="page-enter flex min-h-screen flex-col bg-earth-light text-earth-dark md:flex-row">
+      <div>
         <DashboardSidebar
           active="settings"
           projectName={currentUser.name}
