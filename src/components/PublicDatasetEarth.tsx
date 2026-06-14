@@ -29,11 +29,6 @@ const DEFAULT_ACTIVE_CATEGORIES = [
   "natural_events",
   "wildfires",
   "air_quality",
-  "deforestation",
-  "mining",
-  "pollution",
-  "elevation",
-  "boundaries",
 ];
 
 function loadCesium() {

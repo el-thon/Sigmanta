@@ -250,11 +250,6 @@ Layer filter menampilkan semua kategori yang disiapkan:
 2. Kejadian Alam Aktif.
 3. Hotspot & Kebakaran.
 4. Kualitas Udara.
-5. Deforestasi.
-6. Penambangan.
-7. Wilayah Tercemar.
-8. Elevasi & Terrain.
-9. Boundary Publik.
 
 Sumber data yang ditampilkan atau dikonfigurasi:
 
@@ -262,8 +257,8 @@ Sumber data yang ditampilkan atau dikonfigurasi:
 2. **NASA EONET GeoJSON** — near real-time, endpoint `https://eonet.gsfc.nasa.gov/api/v3/events/geojson`.
 3. **NASA FIRMS** — hotspot/kebakaran jika `NASA_FIRMS_MAP_KEY` tersedia; fallback wildfire berasal dari NASA EONET.
 4. **OpenAQ** — kualitas udara jika `OPENAQ_API_KEY` tersedia.
-5. **Hansen Global Forest Change / Global Forest Watch** — reference layer untuk deforestasi.
-6. **OpenStreetMap/Overpass, geoBoundaries, GADM, atau data pemerintah** — boundary dan fasilitas publik.
+
+Jangan tampilkan layer yang belum memiliki data live atau adapter data yang jelas. Deforestasi, penambangan, wilayah tercemar non-udara, elevasi/terrain, dan boundary publik dapat ditambahkan lagi setelah ada integrasi tile/GeoJSON yang nyata.
 
 **Hover detail:**
 

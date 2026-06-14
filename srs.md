@@ -9,7 +9,7 @@
 
 ## 1. Deskripsi Project
 
-SIGMANTA adalah platform WebGIS yang mengintegrasikan pemetaan lahan, identifikasi zona rawan bencana, pengelolaan titik mitigasi, dan layer referensi dataset publik dalam satu ekosistem geospasial. Sistem ini membantu pengguna memahami kondisi wilayah melalui segmentasi area, analisis risiko, visualisasi fasilitas mitigasi, serta konteks global seperti gempa, kejadian alam aktif, deforestasi, penambangan, polusi udara, kebakaran, cuaca ekstrem, dan layer lingkungan lain.
+SIGMANTA adalah platform WebGIS yang mengintegrasikan pemetaan lahan, identifikasi zona rawan bencana, pengelolaan titik mitigasi, dan layer referensi dataset publik dalam satu ekosistem geospasial. Sistem ini membantu pengguna memahami kondisi wilayah melalui segmentasi area, analisis risiko, visualisasi fasilitas mitigasi, serta konteks global seperti gempa, kejadian alam aktif, polusi udara, kebakaran, dan cuaca ekstrem.
 
 ## 2. Tujuan Sistem
 
@@ -199,29 +199,23 @@ Hak akses:
 
 ## 10.2 Kategori Public Dataset
 
-Kategori public dataset yang didukung secara bertahap:
+Kategori public dataset yang didukung pada viewer saat ini:
 
 1. Gempa bumi dan aktivitas seismik.
 2. Kebakaran atau hotspot.
 3. Cuaca ekstrem dan badai.
 4. Banjir, longsor, kekeringan, dan kejadian alam aktif.
 5. Aktivitas vulkanik.
-6. Deforestasi dan perubahan tutupan pohon.
-7. Area penambangan dan konsesi ekstraktif.
-8. Kualitas udara dan wilayah tercemar udara.
-9. Elevasi, terrain, dan DEM.
-10. Tutupan lahan dan penggunaan lahan.
-11. Batas administratif dan boundary publik.
-12. Fasilitas umum dan infrastruktur dari dataset terbuka.
+6. Kualitas udara.
 
 Sumber awal dan status implementasi:
 
 1. USGS Earthquake GeoJSON feed untuk gempa real-time. Status: live via `/api/public-datasets`.
 2. NASA EONET GeoJSON API untuk kejadian alam aktif seperti wildfire, severe storm, volcano, drought, flood, landslide, dan sea/lake ice. Status: near real-time via `/api/public-datasets`.
 3. NASA FIRMS untuk hotspot/kebakaran jika `NASA_FIRMS_MAP_KEY` tersedia. Status: siap konfigurasi, fallback wildfire berasal dari NASA EONET.
-4. OpenAQ untuk kualitas udara jika `OPENAQ_API_KEY` tersedia. Status: siap konfigurasi.
-5. Hansen Global Forest Change atau Global Forest Watch untuk deforestasi dan tree-cover loss. Status: configured/reference layer.
-6. OpenStreetMap/Overpass, geoBoundaries, GADM, atau data resmi pemerintah untuk boundary dan fasilitas. Status: configured/reference layer.
+4. OpenAQ untuk kualitas udara jika `OPENAQ_API_KEY` tersedia. Status: live via `/api/public-datasets` jika key tersedia.
+
+Layer deforestasi, penambangan, wilayah tercemar non-udara, elevasi/terrain, dan boundary publik tidak ditampilkan pada public dataset viewer sampai ada integrasi data live atau tile service yang jelas. Boundary OSM tetap tersedia pada workspace melalui fitur "Ambil Batas Wilayah" dan bukan bagian dari viewer publik.
 
 ## 11. Segmentasi Lahan
 

@@ -4,12 +4,7 @@ export type PublicDatasetCategory =
   | "earthquakes"
   | "natural_events"
   | "wildfires"
-  | "air_quality"
-  | "deforestation"
-  | "mining"
-  | "pollution"
-  | "elevation"
-  | "boundaries";
+  | "air_quality";
 
 export type PublicDatasetLayer = {
   id: PublicDatasetCategory;
@@ -86,66 +81,6 @@ export const PUBLIC_DATASET_LAYERS: PublicDatasetLayer[] = [
     source: "OpenAQ",
     sourceUrl: "https://docs.openaq.org/",
     sourceLicense: "OpenAQ terms and provider-specific licenses",
-    confidence: "medium",
-    liveInApi: false,
-  },
-  {
-    id: "deforestation",
-    label: "Deforestasi",
-    description: "Layer referensi Global Forest Change / Global Forest Watch untuk tree-cover loss dan alert deforestasi.",
-    color: "#2f740f",
-    status: "periodic",
-    source: "Hansen/UMD/Google/USGS/NASA via Google Earth Engine",
-    sourceUrl: "https://developers.google.com/earth-engine/datasets/catalog/UMD_hansen_global_forest_change_2024_v1_12",
-    sourceLicense: "CC-BY-4.0",
-    confidence: "medium",
-    liveInApi: false,
-  },
-  {
-    id: "mining",
-    label: "Penambangan",
-    description: "Layer referensi area tambang/konsesi ekstraktif dari dataset publik yang perlu dikonfigurasi per sumber.",
-    color: "#6b7280",
-    status: "configured",
-    source: "Public mining datasets / national cadastre / Global Forest Watch where available",
-    sourceUrl: "https://www.globalforestwatch.org/",
-    sourceLicense: "Source-specific terms",
-    confidence: "medium",
-    liveInApi: false,
-  },
-  {
-    id: "pollution",
-    label: "Wilayah Tercemar",
-    description: "Kategori payung untuk polusi udara, air, dan tanah; data live awal memakai OpenAQ untuk udara jika API key tersedia.",
-    color: "#111827",
-    status: "configured",
-    source: "OpenAQ and source-specific public pollution datasets",
-    sourceUrl: "https://docs.openaq.org/",
-    sourceLicense: "Source-specific terms",
-    confidence: "low",
-    liveInApi: false,
-  },
-  {
-    id: "elevation",
-    label: "Elevasi & Terrain",
-    description: "Layer terrain/DEM publik untuk konteks topografi pada Cesium dan analisis elevasi lanjutan.",
-    color: "#8b5a2b",
-    status: "configured",
-    source: "Cesium World Terrain / public DEM sources",
-    sourceUrl: "https://cesium.com/platform/cesium-ion/content/cesium-world-terrain/",
-    sourceLicense: "Provider-specific terms",
-    confidence: "medium",
-    liveInApi: false,
-  },
-  {
-    id: "boundaries",
-    label: "Boundary Publik",
-    description: "Boundary administratif dan OSM untuk konteks lokasi dan import area.",
-    color: "#0f766e",
-    status: "configured",
-    source: "OpenStreetMap, geoBoundaries, GADM, or government datasets",
-    sourceUrl: "https://www.openstreetmap.org/copyright",
-    sourceLicense: "ODbL / source-specific terms",
     confidence: "medium",
     liveInApi: false,
   },
