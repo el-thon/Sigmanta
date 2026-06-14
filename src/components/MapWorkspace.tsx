@@ -6,7 +6,7 @@ import L from "leaflet";
 import "@geoman-io/leaflet-geoman-free";
 import * as turf from "@turf/turf";
 import { BarChart3, Circle as CircleIcon, FolderOpen, Hexagon, Layers, MapIcon, MapPin, MousePointer2, Plus, Route, Save, Search, Settings, Square, Trash2, X } from "lucide-react";
-import type { Feature } from "geojson";
+import type { Feature, LineString } from "geojson";
 
 type LayerType = "land_segmentation" | "disaster_risk" | "elevation" | "marker_label" | "evacuation_route" | "mitigation_resource";
 type GeometryType = "point" | "linestring" | "polygon" | "rectangle" | "circle";
@@ -372,6 +372,72 @@ function objectPoint(object: WorkspaceMapObject): [number, number] | null {
     return center.geometry.coordinates as [number, number];
   }
   return null;
+}
+
+const MAX_ROUTE_ORIGIN_CANDIDATES = 16;
+
+function pushUniqueCoordinate(coordinates: Array<[number, number]>, coordinate: [number, number]) {
+  const exists = coordinates.some(([longitude, latitude]) => (
+    Math.abs(longitude - coordinate[0]) < 0.0000001
+    && Math.abs(latitude - coordinate[1]) < 0.0000001
+  ));
+  if (!exists) coordinates.push(coordinate);
+}
+
+function sampleLineForRouting(line: Feature<LineString>, maxCandidates: number) {
+  if (line.geometry.type !== "LineString") return [] as Array<[number, number]>;
+  const lengthKm = turf.length(line, { units: "kilometers" });
+  const coordinates: Array<[number, number]> = [];
+
+  if (!Number.isFinite(lengthKm) || lengthKm <= 0) {
+    const first = line.geometry.coordinates[0];
+    return first ? [[Number(first[0]), Number(first[1])]] : coordinates;
+  }
+
+  const sampleCount = Math.max(2, maxCandidates);
+  for (let index = 0; index < sampleCount; index += 1) {
+    const distanceKm = sampleCount === 1 ? 0 : (lengthKm * index) / (sampleCount - 1);
+    const point = turf.along(line, distanceKm, { units: "kilometers" });
+    const [longitude, latitude] = point.geometry.coordinates;
+    pushUniqueCoordinate(coordinates, [longitude, latitude]);
+  }
+
+  return coordinates;
+}
+
+function evacuationOriginCandidates(object: WorkspaceMapObject) {
+  const geometry = object.geometry.geometry;
+  const fallback = objectPoint(object);
+
+  if (geometry.type === "Point") {
+    const center = geometry.coordinates as [number, number];
+    const radiusM = getMetadataRadius(object.metadata);
+    if (!radiusM || object.geometryType !== "circle") return [center];
+
+    const circleCandidates: Array<[number, number]> = [];
+    for (let bearing = 0; bearing < 360; bearing += 30) {
+      const point = turf.destination(turf.point(center), radiusM / 1000, bearing, { units: "kilometers" });
+      const [longitude, latitude] = point.geometry.coordinates;
+      pushUniqueCoordinate(circleCandidates, [longitude, latitude]);
+    }
+    return circleCandidates.slice(0, MAX_ROUTE_ORIGIN_CANDIDATES);
+  }
+
+  if (geometry.type === "Polygon") {
+    const outerRing = geometry.coordinates[0];
+    if (outerRing?.length >= 2) {
+      return sampleLineForRouting(
+        turf.lineString(outerRing),
+        MAX_ROUTE_ORIGIN_CANDIDATES,
+      );
+    }
+  }
+
+  if (geometry.type === "LineString") {
+    return sampleLineForRouting(object.geometry as Feature<LineString>, MAX_ROUTE_ORIGIN_CANDIDATES);
+  }
+
+  return fallback ? [fallback] : [];
 }
 
 function isDisasterObject(object: WorkspaceMapObject, layer?: WorkspaceLayer) {
@@ -1225,8 +1291,9 @@ export function MapWorkspace({
       }
 
       const origin = objectPoint(selectedObject);
-      if (!origin) {
-        setEvacuationRoute({ loading: false, error: "Titik asal zona rawan tidak bisa dihitung.", target: null, distanceM: null, durationS: null, geometry: null });
+      const originCandidates = evacuationOriginCandidates(selectedObject);
+      if (!origin || !originCandidates.length) {
+        setEvacuationRoute({ loading: false, error: "Titik akses zona rawan tidak bisa dihitung.", target: null, distanceM: null, durationS: null, geometry: null });
         return;
       }
 
@@ -1272,6 +1339,7 @@ export function MapWorkspace({
           signal: controller.signal,
           body: JSON.stringify({
             origin,
+            originCandidates,
             targetId: selectedCandidate?.object.id ?? null,
             destinations: routingCandidates.map((candidate) => ({
               id: candidate.object.id,
@@ -2090,7 +2158,7 @@ export function MapWorkspace({
                                 onChange={(event) => setRouteTargetId(event.target.value)}
                                 value={routeTargetId}
                               >
-                                <option value="nearest-road">Titik evakuasi terdekat melalui jalan</option>
+                                <option value="nearest-road">Rute tercepat melalui jalan</option>
                                 {routeCandidates.map((candidate) => (
                                   <option key={candidate.id} value={candidate.id}>{candidate.name}</option>
                                 ))}
@@ -2162,7 +2230,7 @@ export function MapWorkspace({
                                 onChange={(event) => setRouteTargetId(event.target.value)}
                                 value={routeTargetId}
                               >
-                                <option value="nearest-road">Titik evakuasi terdekat melalui jalan</option>
+                                <option value="nearest-road">Rute tercepat melalui jalan</option>
                                 {routeCandidates.map((candidate) => (
                                   <option key={candidate.id} value={candidate.id}>{candidate.name}</option>
                                 ))}
@@ -2189,7 +2257,7 @@ export function MapWorkspace({
                                 <div className="min-w-0">
                                   <p className="font-bold leading-6">{evacuationRoute.target.name}</p>
                                   <p className="mt-1 text-xs leading-5 text-earth-dark/60">
-                                    {routeTargetId === "nearest-road" ? "Dipilih dari kandidat titik mitigasi berdasarkan jarak tempuh melalui jaringan jalan yang paling dekat." : "Tujuan dipilih manual, sedangkan jalurnya tetap mengikuti jaringan jalan."}
+                                    {routeTargetId === "nearest-road" ? "Sistem menguji beberapa titik akses di tepi zona dan memilih kombinasi dengan durasi perjalanan OSRM paling singkat." : "Tujuan dipilih manual, sedangkan jalurnya tetap mengikuti jaringan jalan."}
                                   </p>
                                 </div>
                               </div>
