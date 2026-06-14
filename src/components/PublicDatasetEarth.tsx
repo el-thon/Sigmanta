@@ -52,7 +52,7 @@ function loadCesium() {
     const existingScript = document.querySelector(`script[src="${CESIUM_SCRIPT}"]`);
     if (existingScript) {
       existingScript.addEventListener("load", () => resolve(window.Cesium));
-      existingScript.addEventListener("error", () => reject(new Error("CesiumJS gagal dimuat.")));
+      existingScript.addEventListener("error", () => reject(new Error("Peta 3D gagal dimuat.")));
       return;
     }
 
@@ -60,7 +60,7 @@ function loadCesium() {
     script.src = CESIUM_SCRIPT;
     script.async = true;
     script.onload = () => resolve(window.Cesium);
-    script.onerror = () => reject(new Error("CesiumJS gagal dimuat."));
+    script.onerror = () => reject(new Error("Peta 3D gagal dimuat."));
     document.body.appendChild(script);
   });
 }
@@ -159,7 +159,7 @@ export function PublicDatasetEarth() {
       viewerRef.current = viewer;
     }
 
-    setupViewer().catch((setupError) => setError(setupError instanceof Error ? setupError.message : "CesiumJS gagal disiapkan."));
+    setupViewer().catch((setupError) => setError(setupError instanceof Error ? setupError.message : "Peta 3D gagal disiapkan."));
     return () => {
       destroyed = true;
       const viewer = viewerRef.current;
@@ -222,12 +222,12 @@ export function PublicDatasetEarth() {
       <div className="mx-auto max-w-[1216px]">
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
-            <p className="label-mono inline-flex items-center gap-2 text-moss"><Globe2 size={15} /> Public 3D Earth</p>
+            <p className="label-mono inline-flex items-center gap-2 text-moss"><Globe2 size={15} /> Peta Global</p>
             <h2 className="font-display mt-3 max-w-3xl text-4xl font-black leading-tight md:text-5xl">
-              Dataset publik global dalam satu globe CesiumJS.
+              Peta persebaran data lingkungan dan risiko di dunia.
             </h2>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-earth-dark/65">
-              Layer real-time ditarik dari sumber publik dan dinormalisasi dengan metadata source, license, imported_at, dan confidence.
+              Titik gempa, kejadian alam aktif, hotspot kebakaran, dan kategori lingkungan lain ditarik dari sumber data publik dengan metadata sumber yang transparan.
             </p>
           </div>
           <div className="brutal-card bg-earth-paper px-4 py-3 text-xs">
@@ -236,7 +236,7 @@ export function PublicDatasetEarth() {
           </div>
         </div>
 
-        <div className="mt-10 grid gap-5 lg:grid-cols-[330px_1fr]">
+        <div className="mt-8 grid gap-5 lg:grid-cols-[330px_1fr] lg:items-start">
           <aside className="brutal-card bg-earth-light p-4">
             <label className="flex items-center gap-3 border-2 border-earth-dark bg-earth-paper px-3 py-2">
               <Search size={17} />
@@ -275,13 +275,13 @@ export function PublicDatasetEarth() {
 
           <div className="brutal-card overflow-hidden bg-earth-dark">
             <div className="flex flex-col justify-between gap-3 border-b-2 border-earth-dark bg-earth-paper px-4 py-3 md:flex-row md:items-center">
-              <p className="label-mono flex items-center gap-2"><Layers3 size={15} /> CesiumJS Public Layer Viewer</p>
+              <p className="label-mono flex items-center gap-2"><Layers3 size={15} /> Peta Persebaran Data Publik</p>
               <p className="text-xs text-earth-dark/60">
                 {loading ? "Memuat data publik..." : error ? error : `Imported ${data?.importedAt ? new Date(data.importedAt).toLocaleString("id-ID") : "-"}`}
               </p>
             </div>
 
-            <div className="relative min-h-[520px]">
+            <div className="relative h-[460px] md:h-[540px]">
               <div ref={containerRef} className="absolute inset-0" />
               {hovered ? (
                 <div className="absolute bottom-4 left-4 z-10 max-w-md border-2 border-earth-dark bg-earth-light p-4 text-xs shadow-[4px_4px_0_#1c1a14]">

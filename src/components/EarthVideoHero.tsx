@@ -118,7 +118,7 @@ export function EarthVideoHero({ currentUser }: { currentUser?: AuthUser | null 
           <div className="hidden items-center gap-14 text-xs font-bold uppercase tracking-[0.18em] text-earth-dark/55 md:flex">
             <a href="#fitur">Fitur</a>
             <a href="#cara-kerja">Cara Kerja</a>
-            <a href="#public-earth">3D Earth</a>
+            <a href="#public-earth">Peta Global</a>
             <a href="#tentang">Tentang</a>
           </div>
           {currentUser ? (
