@@ -96,12 +96,6 @@ type EvacuationRouteState = {
   durationS: number | null;
   geometry: Feature | null;
 };
-type CandidateRoute = {
-  object: WorkspaceMapObject;
-  distanceM: number;
-  durationS: number;
-  geometry: Feature;
-};
 type ReportLegendEntry = {
   label: string;
   color: string;
@@ -398,12 +392,31 @@ function formatDuration(seconds: number | null) {
   return rest ? `${hours} jam ${rest} menit` : `${hours} jam`;
 }
 
-function vehicleEstimates(distanceM: number | null, drivingSeconds: number | null) {
-  const walkingSeconds = distanceM === null ? null : distanceM / 1.25;
+function haversineDistanceMeters(origin: [number, number], destination: [number, number]) {
+  const [lon1, lat1] = origin;
+  const [lon2, lat2] = destination;
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const earthRadiusM = 6371000;
+  const latDelta = toRadians(lat2 - lat1);
+  const lonDelta = toRadians(lon2 - lon1);
+  const lat1Rad = toRadians(lat1);
+  const lat2Rad = toRadians(lat2);
+  const a = Math.sin(latDelta / 2) ** 2 + Math.cos(lat1Rad) * Math.cos(lat2Rad) * Math.sin(lonDelta / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return earthRadiusM * c;
+}
+
+function durationFromDistanceAndSpeed(distanceM: number | null, speedKmh: number) {
+  if (distanceM === null || !Number.isFinite(speedKmh) || speedKmh <= 0) return null;
+  return (distanceM / 1000 / speedKmh) * 3600;
+}
+
+function vehicleEstimates(distanceM: number | null, speedKmh: number) {
   return [
-    { label: "Mobil", value: formatDuration(drivingSeconds) },
-    { label: "Motor", value: formatDuration(drivingSeconds === null ? null : drivingSeconds * 0.85) },
-    { label: "Jalan Kaki", value: formatDuration(walkingSeconds) },
+    { label: "Mobil", value: formatDuration(durationFromDistanceAndSpeed(distanceM, speedKmh)) },
+    { label: "Motor", value: formatDuration(durationFromDistanceAndSpeed(distanceM, speedKmh * 1.2)) },
+    { label: "Sepeda", value: formatDuration(durationFromDistanceAndSpeed(distanceM, speedKmh * 0.5)) },
+    { label: "Jalan Kaki", value: formatDuration(durationFromDistanceAndSpeed(distanceM, 5)) },
   ];
 }
 
@@ -941,6 +954,7 @@ export function MapWorkspace({
   });
   const [routeTargetId, setRouteTargetId] = useState("fastest");
   const [nearbyRadiusM, setNearbyRadiusM] = useState(10000);
+  const [travelSpeedKmh, setTravelSpeedKmh] = useState(40);
   const [nearbyCandidates, setNearbyCandidates] = useState<NearbyCandidate[]>([]);
   const [nearbyLoading, setNearbyLoading] = useState(false);
   const [nearbyError, setNearbyError] = useState("");
@@ -1180,25 +1194,6 @@ export function MapWorkspace({
   useEffect(() => {
     let cancelled = false;
 
-    async function fetchCandidateRoute(origin: [number, number], candidate: RouteCandidate): Promise<CandidateRoute | null> {
-      const url = `https://router.project-osrm.org/route/v1/driving/${origin[0]},${origin[1]};${candidate.point[0]},${candidate.point[1]}?overview=full&geometries=geojson`;
-      const response = await fetch(url);
-      const data = await response.json().catch(() => null);
-      const route = data?.routes?.[0];
-      if (!response.ok || data?.code !== "Ok" || !route?.geometry) return null;
-
-      return {
-        object: candidate.object,
-        distanceM: Number(route.distance),
-        durationS: Number(route.duration),
-        geometry: {
-          type: "Feature",
-          properties: { targetId: candidate.object.id, targetName: candidate.object.name },
-          geometry: route.geometry,
-        } satisfies Feature,
-      };
-    }
-
     async function findEvacuationRoute() {
       if (!selectedObject) {
         setEvacuationRoute({ loading: false, error: "", target: null, distanceM: null, durationS: null, geometry: null });
@@ -1221,7 +1216,7 @@ export function MapWorkspace({
         .map((object): RouteCandidate => ({
           object,
           point: objectPoint(object) as [number, number],
-          directKm: turf.distance(turf.point(origin), turf.point(objectPoint(object) as [number, number]), { units: "kilometers" }),
+          directKm: haversineDistanceMeters(origin, objectPoint(object) as [number, number]) / 1000,
         }))
         .sort((left, right) => left.directKm - right.directKm);
 
@@ -1237,27 +1232,26 @@ export function MapWorkspace({
         ? candidates.find((candidate) => candidate.object.id === selectedTargetId)
         : null;
 
-      const results = selectedCandidate
-        ? [await fetchCandidateRoute(origin, selectedCandidate)]
-        : await Promise.all(candidates.slice(0, 5).map((candidate) => fetchCandidateRoute(origin, candidate)));
+      const nearest = selectedCandidate ?? candidates[0];
+      const distanceM = haversineDistanceMeters(origin, nearest.point);
+      const durationS = durationFromDistanceAndSpeed(distanceM, travelSpeedKmh);
 
       if (cancelled) return;
-
-      const validRoutes = results.filter((result): result is CandidateRoute => result !== null && Number.isFinite(result.durationS));
-      const fastest = validRoutes.sort((left, right) => left.durationS - right.durationS)[0];
-
-      if (!fastest) {
-        setEvacuationRoute({ loading: false, error: selectedCandidate ? "Rute jalan ke tujuan yang dipilih belum ditemukan." : "Rute jalan ke titik evakuasi belum ditemukan oleh routing service.", target: null, distanceM: null, durationS: null, geometry: null });
-        return;
-      }
 
       setEvacuationRoute({
         loading: false,
         error: "",
-        target: fastest.object,
-        distanceM: fastest.distanceM,
-        durationS: fastest.durationS,
-        geometry: fastest.geometry,
+        target: nearest.object,
+        distanceM,
+        durationS,
+        geometry: {
+          type: "Feature",
+          properties: { targetId: nearest.object.id, targetName: nearest.object.name },
+          geometry: {
+            type: "LineString",
+            coordinates: [origin, nearest.point],
+          },
+        },
       });
     }
 
@@ -1265,7 +1259,7 @@ export function MapWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [layerById, routeCandidates, routeTargetId, selectedObject]);
+  }, [layerById, routeCandidates, routeTargetId, selectedObject, travelSpeedKmh]);
 
   const handleMapReady = useCallback((map: L.Map | null) => {
     mapRef.current = map;
@@ -1739,7 +1733,7 @@ export function MapWorkspace({
             >
               <Tooltip sticky direction="top" opacity={0.96}>
                 <div className="max-w-64">
-                  <p className="font-bold">Rute Evakuasi Tercepat</p>
+                  <p className="font-bold">Evakuasi - Jarak Langsung</p>
                   <p className="mt-1 text-xs">{evacuationRoute.target?.name}</p>
                   <p className="mt-2 text-xs leading-5">
                     {formatDistance(evacuationRoute.distanceM)} · {formatDuration(evacuationRoute.durationS)}
@@ -1949,10 +1943,10 @@ export function MapWorkspace({
 
                 return (
                   <div>
-                    <p className="label-mono mb-3">Rute Evakuasi</p>
+                    <p className="label-mono mb-3">Evakuasi - Jarak Langsung</p>
                     <div className="brutal-card bg-earth-light p-4 text-sm">
                       {evacuationRoute.loading ? (
-                        <p className="text-earth-dark/65">Menghitung rute tercepat ke titik evakuasi...</p>
+                        <p className="text-earth-dark/65">Menghitung jarak langsung ke titik evakuasi...</p>
                       ) : evacuationRoute.error ? (
                         <div className="space-y-4">
                           <div className="space-y-3">
@@ -2003,10 +1997,23 @@ export function MapWorkspace({
                                 onChange={(event) => setRouteTargetId(event.target.value)}
                                 value={routeTargetId}
                               >
-                                <option value="fastest">Titik evakuasi tercepat otomatis</option>
+                                <option value="fastest">Titik evakuasi terdekat otomatis</option>
                                 {routeCandidates.map((candidate) => (
                                   <option key={candidate.id} value={candidate.id}>{candidate.name}</option>
                                 ))}
+                              </select>
+                            </label>
+                            <label className="block">
+                              <span className="text-xs font-bold uppercase text-earth-dark/55">Kecepatan Asumsi</span>
+                              <select
+                                className="mt-1 w-full border-2 border-earth-dark bg-earth-light px-3 py-2 font-bold outline-none"
+                                onChange={(event) => setTravelSpeedKmh(Number(event.target.value))}
+                                value={travelSpeedKmh}
+                              >
+                                <option value={10}>10 km/h</option>
+                                <option value={20}>20 km/h</option>
+                                <option value={40}>40 km/h</option>
+                                <option value={80}>80 km/h</option>
                               </select>
                             </label>
                           </div>
@@ -2062,10 +2069,23 @@ export function MapWorkspace({
                                 onChange={(event) => setRouteTargetId(event.target.value)}
                                 value={routeTargetId}
                               >
-                                <option value="fastest">Titik evakuasi tercepat otomatis</option>
+                                <option value="fastest">Titik evakuasi terdekat otomatis</option>
                                 {routeCandidates.map((candidate) => (
                                   <option key={candidate.id} value={candidate.id}>{candidate.name}</option>
                                 ))}
+                              </select>
+                            </label>
+                            <label className="block">
+                              <span className="text-xs font-bold uppercase text-earth-dark/55">Kecepatan Asumsi</span>
+                              <select
+                                className="mt-1 w-full border-2 border-earth-dark bg-earth-light px-3 py-2 font-bold outline-none"
+                                onChange={(event) => setTravelSpeedKmh(Number(event.target.value))}
+                                value={travelSpeedKmh}
+                              >
+                                <option value={10}>10 km/h</option>
+                                <option value={20}>20 km/h</option>
+                                <option value={40}>40 km/h</option>
+                                <option value={80}>80 km/h</option>
                               </select>
                             </label>
                           </div>
@@ -2076,16 +2096,16 @@ export function MapWorkspace({
                                 <div className="min-w-0">
                                   <p className="font-bold leading-6">{evacuationRoute.target.name}</p>
                                   <p className="mt-1 text-xs leading-5 text-earth-dark/60">
-                                    {routeTargetId === "fastest" ? "Dipilih dari kandidat titik mitigasi berdasarkan durasi rute tercepat." : "Tujuan dipilih manual dari titik evakuasi yang sudah dibuat."}
+                                    {routeTargetId === "fastest" ? "Dipilih dari kandidat titik mitigasi berdasarkan jarak langsung terdekat." : "Tujuan dipilih manual dari titik evakuasi yang sudah dibuat."}
                                   </p>
                                 </div>
                               </div>
                               <div className="grid grid-cols-1 gap-3 min-[1180px]:grid-cols-2">
                                 <div className="border border-earth-dark/15 bg-earth-paper px-3 py-2">
-                                  <p className="text-xs text-earth-dark/55">Jarak Rute</p>
+                                  <p className="text-xs text-earth-dark/55">Jarak Langsung</p>
                                   <p className="mt-1 font-bold">{formatDistance(evacuationRoute.distanceM)}</p>
                                 </div>
-                                {vehicleEstimates(evacuationRoute.distanceM, evacuationRoute.durationS).map((estimate) => (
+                                {vehicleEstimates(evacuationRoute.distanceM, travelSpeedKmh).map((estimate) => (
                                   <div key={estimate.label} className="border border-earth-dark/15 bg-earth-paper px-3 py-2">
                                     <p className="text-xs text-earth-dark/55">{estimate.label}</p>
                                     <p className="mt-1 font-bold">{estimate.value}</p>
