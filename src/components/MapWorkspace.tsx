@@ -128,7 +128,6 @@ type PdfReportOptions = {
 type RouteCandidate = {
   object: WorkspaceMapObject;
   point: [number, number];
-  directKm: number;
 };
 type NearbyCandidate = WorkspaceMapObject & {
   distanceM: number;
@@ -1221,9 +1220,7 @@ export function MapWorkspace({
         .map((object): RouteCandidate => ({
           object,
           point: objectPoint(object) as [number, number],
-          directKm: turf.distance(turf.point(origin), turf.point(objectPoint(object) as [number, number]), { units: "kilometers" }),
-        }))
-        .sort((left, right) => left.directKm - right.directKm);
+        }));
 
       if (!candidates.length) {
         setEvacuationRoute({ loading: false, error: "Belum ada titik evakuasi/titik mitigasi untuk dihitung.", target: null, distanceM: null, durationS: null, geometry: null });
@@ -1239,7 +1236,7 @@ export function MapWorkspace({
 
       const results = selectedCandidate
         ? [await fetchCandidateRoute(origin, selectedCandidate)]
-        : await Promise.all(candidates.slice(0, 5).map((candidate) => fetchCandidateRoute(origin, candidate)));
+        : await Promise.all(candidates.map((candidate) => fetchCandidateRoute(origin, candidate)));
 
       if (cancelled) return;
 
@@ -1990,7 +1987,7 @@ export function MapWorkspace({
                                       type="button"
                                     >
                                       <span className="min-w-0 truncate font-bold">{candidate.name}</span>
-                                      <span className="shrink-0 text-earth-dark/60">{formatDistance(candidate.distanceM)}</span>
+                                      <span className="shrink-0 text-earth-dark/60">{formatDistance(candidate.distanceM)} langsung</span>
                                     </button>
                                   ))}
                                 </div>
@@ -2049,7 +2046,7 @@ export function MapWorkspace({
                                       type="button"
                                     >
                                       <span className="min-w-0 truncate font-bold">{candidate.name}</span>
-                                      <span className="shrink-0 text-earth-dark/60">{formatDistance(candidate.distanceM)}</span>
+                                      <span className="shrink-0 text-earth-dark/60">{formatDistance(candidate.distanceM)} langsung</span>
                                     </button>
                                   ))}
                                 </div>
