@@ -1,6 +1,7 @@
 import { ArrowRight, Download, Link, Map, MapPinned, Pencil, Pin, Route, TriangleAlert } from "lucide-react";
 import { EarthGlobe3D } from "@/components/EarthGlobe3D";
 import { MotionReveal } from "@/components/MotionReveal";
+import { PublicDatasetEarth } from "@/components/PublicDatasetEarth";
 import { Typewriter } from "@/components/Typewriter";
 import type { AuthUser } from "@/lib/auth";
 
@@ -117,6 +118,7 @@ export function EarthVideoHero({ currentUser }: { currentUser?: AuthUser | null 
           <div className="hidden items-center gap-14 text-xs font-bold uppercase tracking-[0.18em] text-earth-dark/55 md:flex">
             <a href="#fitur">Fitur</a>
             <a href="#cara-kerja">Cara Kerja</a>
+            <a href="#public-earth">3D Earth</a>
             <a href="#tentang">Tentang</a>
           </div>
           {currentUser ? (
@@ -165,6 +167,8 @@ export function EarthVideoHero({ currentUser }: { currentUser?: AuthUser | null 
       <div className="border-y-2 border-earth-dark py-5 text-center text-xs uppercase tracking-[0.2em] text-earth-dark/50">
         ↓ Jelajahi Fitur
       </div>
+
+      <PublicDatasetEarth />
 
       <section id="fitur" className="mx-auto max-w-[1216px] px-5 py-16 md:py-20">
         <MotionReveal>
