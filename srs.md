@@ -194,6 +194,8 @@ Hak akses:
 5. Jika user mengimpor data publik ke project, data hasil import menjadi object project dan menyimpan metadata provenance asalnya.
 6. Public dataset viewer harus menyediakan filter kategori, search, toggle layer, dan hover detail.
 7. Data publik yang dapat berubah cepat harus diambil melalui API route/proxy server agar key tidak bocor ke client dan format data dapat dinormalisasi.
+8. Copywriting pada UI public dataset viewer harus menggunakan bahasa produk, misalnya "Peta persebaran data lingkungan dan risiko di dunia", bukan menonjolkan nama engine teknis.
+9. Nama engine seperti CesiumJS boleh muncul di dokumentasi teknis, tetapi tidak digunakan sebagai judul utama section atau label panel di UI.
 
 ## 10.2 Kategori Public Dataset
 
@@ -212,14 +214,14 @@ Kategori public dataset yang didukung secara bertahap:
 11. Batas administratif dan boundary publik.
 12. Fasilitas umum dan infrastruktur dari dataset terbuka.
 
-Sumber awal yang dapat digunakan:
+Sumber awal dan status implementasi:
 
-1. USGS Earthquake GeoJSON feed untuk gempa real-time.
-2. NASA EONET untuk kejadian alam aktif seperti wildfire, severe storm, volcano, drought, flood, landslide, dan sea/lake ice.
-3. NASA FIRMS untuk hotspot/kebakaran jika `NASA_FIRMS_MAP_KEY` tersedia.
-4. OpenAQ untuk kualitas udara jika `OPENAQ_API_KEY` tersedia.
-5. Hansen Global Forest Change atau Global Forest Watch untuk deforestasi dan tree-cover loss.
-6. OpenStreetMap/Overpass, geoBoundaries, GADM, atau data resmi pemerintah untuk boundary dan fasilitas.
+1. USGS Earthquake GeoJSON feed untuk gempa real-time. Status: live via `/api/public-datasets`.
+2. NASA EONET GeoJSON API untuk kejadian alam aktif seperti wildfire, severe storm, volcano, drought, flood, landslide, dan sea/lake ice. Status: near real-time via `/api/public-datasets`.
+3. NASA FIRMS untuk hotspot/kebakaran jika `NASA_FIRMS_MAP_KEY` tersedia. Status: siap konfigurasi, fallback wildfire berasal dari NASA EONET.
+4. OpenAQ untuk kualitas udara jika `OPENAQ_API_KEY` tersedia. Status: siap konfigurasi.
+5. Hansen Global Forest Change atau Global Forest Watch untuk deforestasi dan tree-cover loss. Status: configured/reference layer.
+6. OpenStreetMap/Overpass, geoBoundaries, GADM, atau data resmi pemerintah untuk boundary dan fasilitas. Status: configured/reference layer.
 
 ## 11. Segmentasi Lahan
 
@@ -389,9 +391,9 @@ Layout PDF mengikuti gaya laporan peta kartografis:
 4. Warna legenda harus konsisten dengan warna objek di workspace.
 5. PDF harus tetap terbaca saat dicetak pada ukuran A4 landscape.
 
-## 16.2 Spesifikasi 3D Earth Public Dataset Viewer
+## 16.2 Spesifikasi Peta Global Public Dataset
 
-3D Earth pada home page menggunakan CesiumJS dan dapat diakses tanpa login.
+Peta global pada home page menggunakan engine globe 3D dan dapat diakses tanpa login. UI menampilkan section sebagai peta persebaran data lingkungan dan risiko dunia, bukan sebagai demo teknologi.
 
 Kemampuan minimal:
 
@@ -403,6 +405,8 @@ Kemampuan minimal:
 6. Menampilkan metadata provenance: source, URL sumber, lisensi, waktu import, dan confidence.
 7. Menampilkan status layer: live, near real-time, periodik, butuh API key, atau configured.
 8. Menyediakan fallback informatif jika sumber data tidak tersedia, API key belum dikonfigurasi, atau endpoint gagal.
+9. Wrapper viewer harus mengikuti tinggi area globe. Panel kanan tidak boleh ikut memanjang hanya karena sidebar filter lebih tinggi.
+10. Header panel viewer menggunakan label produk seperti "Peta Persebaran Data Publik".
 
 CesiumJS digunakan untuk visualisasi 3D global. Workspace editing project tetap menggunakan peta 2D berbasis Leaflet karena proses menggambar dan mengedit polygon lebih ergonomis di 2D.
 
@@ -505,11 +509,12 @@ Perubahan penting dari konsep sebelumnya:
 
 ### Phase 4B — Public 3D Earth
 
-1. Render CesiumJS globe di home page.
+1. Render globe 3D di home page.
 2. Ambil dataset publik melalui `/api/public-datasets`.
 3. Normalisasi data menjadi fitur geospasial dengan metadata provenance.
 4. Tampilkan layer toggle, search, filter kategori, dan hover detail.
 5. Bedakan layer live, near real-time, periodik, configured, dan API-key-required.
+6. Gunakan copy UI berbasis manfaat, bukan label teknis engine.
 
 ### Phase 5 — Map Object CRUD
 

@@ -22,7 +22,7 @@
 - **Neo-brutalism versi halus:** border tebal tapi tidak agresif, offset shadow hitam tipis (4–6px), grid ketat, tipografi besar dan tegas.
 - **Bento Grid:** Layout dashboard dan landing page menggunakan bento-style grid — ukuran tile berbeda, asimetris, tapi tetap dalam grid yang teratur.
 - **Minimalist:** Tidak ada ornamen dekoratif berlebihan. Setiap elemen harus memiliki fungsi.
-- **3D hanya di hero section** landing page — menggunakan globe/earth element, bukan di workspace atau dashboard.
+- **3D hanya di landing page** — digunakan untuk hero globe dan section peta global dataset publik, bukan di workspace editing atau dashboard.
 
 ---
 
@@ -213,7 +213,77 @@ const phrases = [
 
 Elemen kecil di bawah hero: `[↓ Scroll untuk jelajahi]` dengan animasi bounce pelan. Saat user scroll, hero section fade-out dengan parallax ringan (globe bergerak lebih lambat dari text).
 
-### 5.3 Section: Fitur Utama (Bento Grid)
+### 5.3 Section: Peta Persebaran Data Lingkungan Dunia
+
+Section peta global berada setelah hero/scroll indicator dan sebelum bento fitur utama. Tujuannya memperlihatkan konteks global dari dataset publik, bukan mempromosikan teknologi engine.
+
+**Copywriting UI:**
+
+- Judul utama: `Peta persebaran data lingkungan dan risiko di dunia.`
+- Label kecil: `Peta Global`
+- Header panel peta: `Peta Persebaran Data Publik`
+- Hindari teks yang menonjolkan nama engine seperti `CesiumJS Public Layer Viewer` pada UI publik.
+- Nama engine 3D boleh dicatat di dokumentasi teknis atau komentar developer, tetapi bukan headline/label user-facing.
+
+**Layout:**
+
+```
+┌──────────────────────┬──────────────────────────────────────┐
+│ Filter + Search      │ Peta globe 3D                         │
+│ Layer toggle         │ Hover detail + attribution            │
+└──────────────────────┴──────────────────────────────────────┘
+```
+
+- Grid desktop: `330px 1fr`.
+- Grid harus menggunakan `align-items: start` agar panel peta tidak ikut memanjang setinggi sidebar filter.
+- Tinggi viewer:
+  - Mobile: `460px`
+  - Desktop/tablet: `540px`
+- Tidak boleh ada ruang kosong besar di bawah globe; wrapper peta harus mengikuti tinggi canvas/viewport peta.
+- Sidebar filter boleh lebih tinggi dari panel peta dan tidak memaksa panel peta ikut stretch.
+
+**Data dan layer:**
+
+Layer filter menampilkan semua kategori yang disiapkan:
+
+1. Gempa Bumi.
+2. Kejadian Alam Aktif.
+3. Hotspot & Kebakaran.
+4. Kualitas Udara.
+5. Deforestasi.
+6. Penambangan.
+7. Wilayah Tercemar.
+8. Elevasi & Terrain.
+9. Boundary Publik.
+
+Sumber data yang ditampilkan atau dikonfigurasi:
+
+1. **USGS Earthquake GeoJSON** — live, endpoint `https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson`.
+2. **NASA EONET GeoJSON** — near real-time, endpoint `https://eonet.gsfc.nasa.gov/api/v3/events/geojson`.
+3. **NASA FIRMS** — hotspot/kebakaran jika `NASA_FIRMS_MAP_KEY` tersedia; fallback wildfire berasal dari NASA EONET.
+4. **OpenAQ** — kualitas udara jika `OPENAQ_API_KEY` tersedia.
+5. **Hansen Global Forest Change / Global Forest Watch** — reference layer untuk deforestasi.
+6. **OpenStreetMap/Overpass, geoBoundaries, GADM, atau data pemerintah** — boundary dan fasilitas publik.
+
+**Hover detail:**
+
+Panel hover harus menampilkan:
+
+- Nama fitur.
+- Ringkasan.
+- Source.
+- License.
+- Confidence.
+- Waktu import.
+- Link sumber.
+
+**Visual:**
+
+- Gunakan globe textured dengan imagery bumi yang terbaca, bukan ellipsoid biru polos.
+- Label titik boleh kecil, tetapi tidak boleh menutupi seluruh globe. Jika label terlalu padat, prioritaskan point marker dan munculkan detail lewat hover.
+- Warna marker mengikuti kategori layer dan tetap kontras terhadap imagery bumi.
+
+### 5.4 Section: Fitur Utama (Bento Grid)
 
 **Judul section:**
 ```
@@ -242,7 +312,7 @@ Semua yang Kamu Butuhkan."
 - Deskripsi singkat 1–2 baris
 - Warna aksen berbeda tiap tile (moss, water, hazard, amber, neutral)
 
-### 5.4 Section: Cara Kerja
+### 5.5 Section: Cara Kerja
 
 Layout: horizontal step-by-step dengan connector line tipis.
 
@@ -255,7 +325,7 @@ Layout: horizontal step-by-step dengan connector line tipis.
 
 Animasi: saat scroll masuk viewport, setiap step muncul berurutan dengan `staggered animation-delay` (0ms, 150ms, 300ms, 450ms, 600ms).
 
-### 5.5 Section: Call to Action Akhir
+### 5.6 Section: Call to Action Akhir
 
 Background: `--color-earth-dark` (inverted section)  
 Teks besar: *"Mulai pemetaan wilayahmu hari ini."*  
