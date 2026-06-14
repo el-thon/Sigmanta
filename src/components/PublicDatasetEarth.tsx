@@ -24,6 +24,17 @@ declare global {
 const CESIUM_VERSION = "1.127";
 const CESIUM_SCRIPT = `https://cdn.jsdelivr.net/npm/cesium@${CESIUM_VERSION}/Build/Cesium/Cesium.js`;
 const CESIUM_CSS = `https://cdn.jsdelivr.net/npm/cesium@${CESIUM_VERSION}/Build/Cesium/Widgets/widgets.css`;
+const DEFAULT_ACTIVE_CATEGORIES = [
+  "earthquakes",
+  "natural_events",
+  "wildfires",
+  "air_quality",
+  "deforestation",
+  "mining",
+  "pollution",
+  "elevation",
+  "boundaries",
+];
 
 function loadCesium() {
   if (typeof window === "undefined") return Promise.reject(new Error("Browser belum tersedia."));
@@ -74,7 +85,7 @@ export function PublicDatasetEarth() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set(["earthquakes", "natural_events", "wildfires"]));
+  const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set(DEFAULT_ACTIVE_CATEGORIES));
   const [hovered, setHovered] = useState<PublicDatasetFeature | null>(null);
 
   const visibleFeatures = useMemo(() => {
@@ -115,6 +126,11 @@ export function PublicDatasetEarth() {
       Cesium.Ion.defaultAccessToken = "";
       const viewer = new Cesium.Viewer(containerRef.current, {
         animation: false,
+        baseLayer: Cesium.ImageryLayer.fromProviderAsync(
+          Cesium.TileMapServiceImageryProvider.fromUrl(
+            Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII")
+          )
+        ),
         baseLayerPicker: false,
         fullscreenButton: false,
         geocoder: false,
@@ -124,16 +140,13 @@ export function PublicDatasetEarth() {
         sceneModePicker: false,
         selectionIndicator: false,
         timeline: false,
-        imageryProvider: new Cesium.OpenStreetMapImageryProvider({
-          url: "https://tile.openstreetmap.org/",
-          credit: "OpenStreetMap contributors",
-        }),
       });
 
+      viewer.scene.backgroundColor = Cesium.Color.BLACK;
       viewer.scene.globe.enableLighting = true;
       viewer.scene.skyAtmosphere.show = true;
       viewer.camera.setView({
-        destination: Cesium.Cartesian3.fromDegrees(118, -2, 17000000),
+        destination: Cesium.Cartesian3.fromDegrees(-30, 18, 14500000),
       });
 
       const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
