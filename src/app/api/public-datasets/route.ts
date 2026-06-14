@@ -33,18 +33,121 @@ type OpenAqLatestResponse = {
   results?: OpenAqLatestResult[];
 };
 
+type OpenAqParameterResult = {
+  id?: number;
+  name?: string;
+  units?: string;
+  displayName?: string | null;
+  description?: string | null;
+};
+
+type OpenAqParameterResponse = {
+  results?: OpenAqParameterResult[];
+};
+
 const OPENAQ_PARAMETERS = [
-  { id: 2, label: "PM2.5" },
-  { id: 3, label: "PM10" },
-  { id: 5, label: "NO2" },
-  { id: 6, label: "SO2" },
-  { id: 7, label: "O3" },
-  { id: 8, label: "CO" },
+  { id: 2, fallbackLabel: "PM2.5" },
+  { id: 3, fallbackLabel: "PM10" },
+  { id: 5, fallbackLabel: "NO2" },
+  { id: 6, fallbackLabel: "SO2" },
+  { id: 7, fallbackLabel: "O3" },
+  { id: 8, fallbackLabel: "CO" },
 ];
+
+function displayUnit(unit: string | null) {
+  if (!unit) return "unit tidak tersedia";
+  return unit.replace("ug/m3", "µg/m³").replace("ug/m³", "µg/m³");
+}
+
+function normalizedUnit(unit: string | null) {
+  return (unit ?? "")
+    .replace(/[µμ]/g, "u")
+    .replace("³", "3")
+    .replace(/\s+/g, "")
+    .toLowerCase();
+}
+
+function roundedReading(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+function airQualityInterpretation(parameter: string, value: number, unit: string | null) {
+  const standard = "Kategori konsentrasi ISPU sederhana";
+  const categories = [
+    { label: "Baik", description: "Kualitas udara masih aman untuk aktivitas umum." },
+    { label: "Sedang", description: "Masih dapat diterima, tetapi orang sensitif sebaiknya mengurangi paparan lama." },
+    { label: "Tidak sehat", description: "Kelompok sensitif perlu membatasi aktivitas luar ruang." },
+    { label: "Sangat tidak sehat", description: "Semua orang sebaiknya mengurangi aktivitas luar ruang." },
+    { label: "Berbahaya", description: "Hindari aktivitas luar ruang dan ikuti arahan otoritas setempat." },
+  ];
+
+  const indexFor = (thresholds: number[]) => {
+    const index = thresholds.findIndex((threshold) => value <= threshold);
+    return index === -1 ? categories.length - 1 : index;
+  };
+
+  const unitKey = normalizedUnit(unit);
+  const isMicrogramPerCubicMeter = unitKey === "ug/m3" || unitKey === "µg/m3";
+  if (!isMicrogramPerCubicMeter) {
+    return {
+      label: "Belum dikategorikan",
+      description: "Nilai OpenAQ ditampilkan sebagai pembacaan mentah karena unit dari sumber tidak cocok dengan ambang ISPU sederhana.",
+      standard: "Raw OpenAQ reading",
+    };
+  }
+
+  if (parameter === "PM2.5") {
+    const category = categories[indexFor([15.5, 55.4, 150.4, 250.4])];
+    return { ...category, standard };
+  }
+
+  if (parameter === "PM10") {
+    const category = categories[indexFor([50, 150, 350, 420])];
+    return { ...category, standard };
+  }
+
+  return {
+    label: "Belum dikategorikan",
+    description: "Nilai OpenAQ ditampilkan sebagai konsentrasi mentah karena konversi kategori memerlukan standar dan satuan yang lebih spesifik.",
+    standard: "Raw OpenAQ reading",
+  };
+}
 
 function numberValue(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+async function fetchOpenAqJson<T>(url: string, key: string) {
+  const response = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+      "X-API-Key": key,
+    },
+    next: { revalidate: 900 },
+  });
+  if (!response.ok) throw new Error(`OpenAQ: ${response.status} ${response.statusText}`);
+  return (await response.json()) as T;
+}
+
+async function loadOpenAqParameter(parameter: { id: number; fallbackLabel: string }, key: string) {
+  try {
+    const data = await fetchOpenAqJson<OpenAqParameterResponse>(`https://api.openaq.org/v3/parameters/${parameter.id}`, key);
+    const metadata = data.results?.[0];
+    return {
+      id: parameter.id,
+      label: metadata?.displayName || metadata?.name || parameter.fallbackLabel,
+      standardLabel: parameter.fallbackLabel,
+      unit: metadata?.units ?? null,
+    };
+  } catch {
+    return {
+      id: parameter.id,
+      label: parameter.fallbackLabel,
+      standardLabel: parameter.fallbackLabel,
+      unit: null,
+    };
+  }
 }
 
 function pointCoordinates(feature: GeoJsonFeature) {
@@ -189,17 +292,10 @@ async function loadOpenAq(importedAt: string): Promise<PublicDatasetFeature[]> {
   if (!key || !layer) return [];
 
   const responses = await Promise.allSettled(
-    OPENAQ_PARAMETERS.map(async (parameter) => {
+    OPENAQ_PARAMETERS.map(async (parameterConfig) => {
+      const parameter = await loadOpenAqParameter(parameterConfig, key);
       const url = `https://api.openaq.org/v3/parameters/${parameter.id}/latest?limit=35`;
-      const response = await fetch(url, {
-        headers: {
-          Accept: "application/json",
-          "X-API-Key": key,
-        },
-        next: { revalidate: 900 },
-      });
-      if (!response.ok) throw new Error(`OpenAQ parameter ${parameter.id}: ${response.status} ${response.statusText}`);
-      const data = (await response.json()) as OpenAqLatestResponse;
+      const data = await fetchOpenAqJson<OpenAqLatestResponse>(url, key);
       return { parameter, results: data.results ?? [] };
     })
   );
@@ -212,21 +308,27 @@ async function loadOpenAq(importedAt: string): Promise<PublicDatasetFeature[]> {
       const value = numberValue(result.value);
       if (latitude === null || longitude === null || value === null) return null;
       const observedAt = result.datetime?.utc ?? result.datetime?.local ?? null;
+      const interpretation = airQualityInterpretation(parameter.standardLabel, value, parameter.unit);
+      const formattedValue = `${parameter.label}: ${roundedReading(value)} ${displayUnit(parameter.unit)}`;
 
       return {
         id: `openaq-${parameter.id}-${result.locationsId ?? "loc"}-${result.sensorsId ?? "sensor"}-${observedAt ?? "latest"}`,
         category: "air_quality",
-        label: `${parameter.label} air quality reading`,
-        summary: `${parameter.label}: ${value}${observedAt ? `, ${new Date(observedAt).toLocaleString("id-ID")}` : ""}`,
+        label: `${parameter.label} ${interpretation.label}`,
+        summary: `${formattedValue} - ${interpretation.label}${observedAt ? `, ${new Date(observedAt).toLocaleString("id-ID")}` : ""}`,
         longitude,
         latitude,
-        value: `${parameter.label} ${value}`,
+        value: `${parameter.label} ${roundedReading(value)}`,
         observedAt,
         source: layer.source,
         source_url: `https://api.openaq.org/v3/parameters/${parameter.id}/latest`,
         source_license: layer.sourceLicense,
         imported_at: importedAt,
         confidence: layer.confidence,
+        unit: displayUnit(parameter.unit),
+        status_label: interpretation.label,
+        status_description: interpretation.description,
+        interpretation_standard: interpretation.standard,
       };
     })
     .filter((feature): feature is PublicDatasetFeature => feature !== null)

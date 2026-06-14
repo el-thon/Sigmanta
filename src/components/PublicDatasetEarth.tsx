@@ -283,7 +283,18 @@ export function PublicDatasetEarth() {
                   <p className="label-mono text-moss">{hovered.category}</p>
                   <h3 className="mt-2 text-base font-bold">{hovered.label}</h3>
                   <p className="mt-2 leading-5 text-earth-dark/70">{hovered.summary}</p>
+                  {hovered.status_label ? (
+                    <div className="mt-3 border-2 border-earth-dark/15 bg-earth-paper p-3">
+                      <p className="label-mono text-earth-dark/55">Interpretasi</p>
+                      <p className="mt-1 text-sm font-bold text-earth-dark">{hovered.status_label}</p>
+                      {hovered.status_description ? (
+                        <p className="mt-1 leading-5 text-earth-dark/65">{hovered.status_description}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
                   <div className="mt-3 grid gap-2 text-earth-dark/62">
+                    {hovered.unit ? <span>Satuan: {hovered.unit}</span> : null}
+                    {hovered.interpretation_standard ? <span>Standar baca: {hovered.interpretation_standard}</span> : null}
                     <span>Source: {hovered.source}</span>
                     <span>License: {hovered.source_license}</span>
                     <span>Confidence: {hovered.confidence}</span>

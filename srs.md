@@ -217,6 +217,8 @@ Sumber awal dan status implementasi:
 
 Layer deforestasi, penambangan, wilayah tercemar non-udara, elevasi/terrain, dan boundary publik tidak ditampilkan pada public dataset viewer sampai ada integrasi data live atau tile service yang jelas. Boundary OSM tetap tersedia pada workspace melalui fitur "Ambil Batas Wilayah" dan bukan bagian dari viewer publik.
 
+Data kualitas udara OpenAQ ditampilkan dengan nilai konsentrasi, satuan, waktu observasi, sumber, license, confidence, dan interpretasi status. Satuan dibaca dari metadata `/v3/parameters/{id}`, sedangkan nilai terbaru dibaca dari `/v3/parameters/{id}/latest`. Interpretasi awal memakai kategori konsentrasi ISPU sederhana untuk PM2.5 dan PM10 jika unitnya `µg/m³`. Parameter lain seperti NO2, SO2, O3, dan CO tetap ditampilkan sebagai pembacaan mentah jika satuan atau standar konversinya belum cukup aman untuk dikategorikan.
+
 ## 11. Segmentasi Lahan
 
 Segmentasi lahan digunakan untuk memetakan penggunaan area.

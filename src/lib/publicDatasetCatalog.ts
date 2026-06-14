@@ -33,6 +33,10 @@ export type PublicDatasetFeature = {
   source_license: string;
   imported_at: string;
   confidence: "high" | "medium" | "low";
+  unit?: string;
+  status_label?: string;
+  status_description?: string;
+  interpretation_standard?: string;
 };
 
 export const PUBLIC_DATASET_LAYERS: PublicDatasetLayer[] = [
