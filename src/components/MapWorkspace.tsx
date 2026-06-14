@@ -412,11 +412,20 @@ function durationFromDistanceAndSpeed(distanceM: number | null, speedKmh: number
 }
 
 function vehicleEstimates(distanceM: number | null, speedKmh: number) {
+  const MOTOR_SPEED_MULTIPLIER = 1.2;
+  const BICYCLE_SPEED_MULTIPLIER = 0.35;
+  const BICYCLE_SPEED_MIN_KMH = 10;
+  const BICYCLE_SPEED_MAX_KMH = 25;
+  const WALKING_SPEED_KMH = 5;
+
+  const motorSpeedKmh = speedKmh * MOTOR_SPEED_MULTIPLIER;
+  const bicycleSpeedKmh = Math.min(Math.max(speedKmh * BICYCLE_SPEED_MULTIPLIER, BICYCLE_SPEED_MIN_KMH), BICYCLE_SPEED_MAX_KMH);
+
   return [
     { label: "Mobil", value: formatDuration(durationFromDistanceAndSpeed(distanceM, speedKmh)) },
-    { label: "Motor", value: formatDuration(durationFromDistanceAndSpeed(distanceM, speedKmh * 1.2)) },
-    { label: "Sepeda", value: formatDuration(durationFromDistanceAndSpeed(distanceM, speedKmh * 0.5)) },
-    { label: "Jalan Kaki", value: formatDuration(durationFromDistanceAndSpeed(distanceM, 5)) },
+    { label: "Motor", value: formatDuration(durationFromDistanceAndSpeed(distanceM, motorSpeedKmh)) },
+    { label: "Sepeda", value: formatDuration(durationFromDistanceAndSpeed(distanceM, bicycleSpeedKmh)) },
+    { label: "Jalan Kaki", value: formatDuration(durationFromDistanceAndSpeed(distanceM, WALKING_SPEED_KMH)) },
   ];
 }
 
