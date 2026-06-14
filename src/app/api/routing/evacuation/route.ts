@@ -155,7 +155,11 @@ async function selectFastestRoutePair(
     destinations.forEach((destination, destinationIndex) => {
       const duration = table.durations?.[originIndex]?.[destinationIndex];
       const distance = table.distances?.[originIndex]?.[destinationIndex];
-      if (duration === null || distance === null) return;
+
+      // Optional chaining dapat menghasilkan undefined ketika respons OSRM
+      // tidak memiliki sel matriks tertentu. Pastikan keduanya benar-benar
+      // bertipe number sebelum dimasukkan ke SelectedRoutePair.
+      if (typeof duration !== "number" || typeof distance !== "number") return;
       if (!Number.isFinite(duration) || !Number.isFinite(distance)) return;
 
       const candidate: SelectedRoutePair = {
