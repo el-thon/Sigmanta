@@ -122,7 +122,6 @@ type PdfReportOptions = {
 type RouteCandidate = {
   object: WorkspaceMapObject;
   point: [number, number];
-  directKm: number;
 };
 type NearbyCandidate = WorkspaceMapObject & {
   distanceM: number;
@@ -2001,7 +2000,7 @@ export function MapWorkspace({
                                       type="button"
                                     >
                                       <span className="min-w-0 truncate font-bold">{candidate.name}</span>
-                                      <span className="shrink-0 text-earth-dark/60">{formatDistance(candidate.distanceM)}</span>
+                                      <span className="shrink-0 text-earth-dark/60">{formatDistance(candidate.distanceM)} langsung</span>
                                     </button>
                                   ))}
                                 </div>
@@ -2073,7 +2072,7 @@ export function MapWorkspace({
                                       type="button"
                                     >
                                       <span className="min-w-0 truncate font-bold">{candidate.name}</span>
-                                      <span className="shrink-0 text-earth-dark/60">{formatDistance(candidate.distanceM)}</span>
+                                      <span className="shrink-0 text-earth-dark/60">{formatDistance(candidate.distanceM)} langsung</span>
                                     </button>
                                   ))}
                                 </div>
