@@ -294,6 +294,7 @@ export function PublicDatasetEarth() {
                   ) : null}
                   <div className="mt-3 grid gap-2 text-earth-dark/62">
                     {hovered.unit ? <span>Satuan: {hovered.unit}</span> : null}
+                    {hovered.interpreted_value ? <span>Nilai interpretasi: {hovered.interpreted_value}</span> : null}
                     {hovered.interpretation_standard ? <span>Standar baca: {hovered.interpretation_standard}</span> : null}
                     <span>Source: {hovered.source}</span>
                     <span>License: {hovered.source_license}</span>

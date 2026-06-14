@@ -71,46 +71,70 @@ function roundedReading(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(4).replace(/0+$/, "").replace(/\.$/, "");
 }
 
+const AIR_QUALITY_CATEGORIES = [
+  { label: "Baik", description: "Kualitas udara masih aman untuk aktivitas umum." },
+  { label: "Sedang", description: "Masih dapat diterima, tetapi orang sensitif sebaiknya mengurangi paparan lama." },
+  { label: "Tidak sehat", description: "Kelompok sensitif perlu membatasi aktivitas luar ruang." },
+  { label: "Sangat tidak sehat", description: "Semua orang sebaiknya mengurangi aktivitas luar ruang." },
+  { label: "Berbahaya", description: "Hindari aktivitas luar ruang dan ikuti arahan otoritas setempat." },
+];
+
+const ISPU_BREAKPOINTS_UG_M3: Record<string, number[]> = {
+  "PM2.5": [15.5, 55.4, 150.4, 250.4],
+  PM10: [50, 150, 350, 420],
+  SO2: [52, 180, 400, 800],
+  CO: [4000, 8000, 15000, 30000],
+  O3: [120, 235, 400, 800],
+  NO2: [80, 200, 1130, 2260],
+};
+
+const GAS_MOLECULAR_WEIGHTS: Record<string, number> = {
+  SO2: 64.066,
+  CO: 28.01,
+  O3: 48,
+  NO2: 46.0055,
+};
+
+function microgramsPerCubicMeter(parameter: string, value: number, unit: string | null) {
+  const unitKey = normalizedUnit(unit);
+  if (unitKey === "ug/m3") return value;
+  if (unitKey === "mg/m3") return value * 1000;
+
+  const molecularWeight = GAS_MOLECULAR_WEIGHTS[parameter];
+  if (!molecularWeight) return null;
+  if (unitKey === "ppm") return value * molecularWeight * 1000 / 24.45;
+  if (unitKey === "ppb") return value * molecularWeight / 24.45;
+  return null;
+}
+
 function airQualityInterpretation(parameter: string, value: number, unit: string | null) {
   const standard = "Kategori konsentrasi ISPU sederhana";
-  const categories = [
-    { label: "Baik", description: "Kualitas udara masih aman untuk aktivitas umum." },
-    { label: "Sedang", description: "Masih dapat diterima, tetapi orang sensitif sebaiknya mengurangi paparan lama." },
-    { label: "Tidak sehat", description: "Kelompok sensitif perlu membatasi aktivitas luar ruang." },
-    { label: "Sangat tidak sehat", description: "Semua orang sebaiknya mengurangi aktivitas luar ruang." },
-    { label: "Berbahaya", description: "Hindari aktivitas luar ruang dan ikuti arahan otoritas setempat." },
-  ];
+  const breakpoints = ISPU_BREAKPOINTS_UG_M3[parameter];
+  if (!breakpoints) {
+    return {
+      label: "Belum dikategorikan",
+      description: "Nilai OpenAQ ditampilkan sebagai pembacaan mentah karena parameter belum memiliki ambang interpretasi.",
+      standard: "Raw OpenAQ reading",
+      interpretedValue: null,
+    };
+  }
 
-  const indexFor = (thresholds: number[]) => {
-    const index = thresholds.findIndex((threshold) => value <= threshold);
-    return index === -1 ? categories.length - 1 : index;
-  };
-
-  const unitKey = normalizedUnit(unit);
-  const isMicrogramPerCubicMeter = unitKey === "ug/m3" || unitKey === "µg/m3";
-  if (!isMicrogramPerCubicMeter) {
+  const interpretedValue = microgramsPerCubicMeter(parameter, value, unit);
+  if (interpretedValue === null) {
     return {
       label: "Belum dikategorikan",
       description: "Nilai OpenAQ ditampilkan sebagai pembacaan mentah karena unit dari sumber tidak cocok dengan ambang ISPU sederhana.",
       standard: "Raw OpenAQ reading",
+      interpretedValue: null,
     };
   }
 
-  if (parameter === "PM2.5") {
-    const category = categories[indexFor([15.5, 55.4, 150.4, 250.4])];
-    return { ...category, standard };
-  }
-
-  if (parameter === "PM10") {
-    const category = categories[indexFor([50, 150, 350, 420])];
-    return { ...category, standard };
-  }
-
-  return {
-    label: "Belum dikategorikan",
-    description: "Nilai OpenAQ ditampilkan sebagai konsentrasi mentah karena konversi kategori memerlukan standar dan satuan yang lebih spesifik.",
-    standard: "Raw OpenAQ reading",
-  };
+  const categoryIndex = breakpoints.findIndex((threshold) => interpretedValue <= threshold);
+  const category = AIR_QUALITY_CATEGORIES[categoryIndex === -1 ? AIR_QUALITY_CATEGORIES.length - 1 : categoryIndex];
+  const convertedDescription = normalizedUnit(unit) === "ug/m3"
+    ? category.description
+    : `${category.description} Nilai dikonversi ke µg/m³ untuk pembacaan kategori.`;
+  return { ...category, description: convertedDescription, standard, interpretedValue };
 }
 
 function numberValue(value: unknown) {
@@ -326,6 +350,7 @@ async function loadOpenAq(importedAt: string): Promise<PublicDatasetFeature[]> {
         imported_at: importedAt,
         confidence: layer.confidence,
         unit: displayUnit(parameter.unit),
+        interpreted_value: interpretation.interpretedValue === null ? undefined : `${roundedReading(interpretation.interpretedValue)} µg/m³`,
         status_label: interpretation.label,
         status_description: interpretation.description,
         interpretation_standard: interpretation.standard,

@@ -34,6 +34,7 @@ export type PublicDatasetFeature = {
   imported_at: string;
   confidence: "high" | "medium" | "low";
   unit?: string;
+  interpreted_value?: string;
   status_label?: string;
   status_description?: string;
   interpretation_standard?: string;

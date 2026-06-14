@@ -266,7 +266,7 @@ Panel hover harus menampilkan:
 
 - Nama fitur.
 - Ringkasan.
-- Untuk kualitas udara: nilai konsentrasi, satuan dari metadata parameter OpenAQ, status interpretasi, deskripsi dampak singkat, dan standar baca.
+- Untuk kualitas udara: nilai konsentrasi, satuan dari metadata parameter OpenAQ, nilai interpretasi setara `µg/m³` jika ada konversi, status interpretasi, deskripsi dampak singkat, dan standar baca.
 - Source.
 - License.
 - Confidence.
