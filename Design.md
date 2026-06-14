@@ -266,6 +266,7 @@ Panel hover harus menampilkan:
 
 - Nama fitur.
 - Ringkasan.
+- Detail teknis kategori: gempa menampilkan magnitude/kedalaman/status USGS; kejadian alam menampilkan kategori/tanggal/koordinat EONET; hotspot menampilkan brightness/confidence/FRP/satelit/instrumen FIRMS.
 - Untuk kualitas udara: nilai konsentrasi, satuan dari metadata parameter OpenAQ, nilai interpretasi setara `µg/m³` jika ada konversi, status interpretasi, deskripsi dampak singkat, dan standar baca.
 - Source.
 - License.

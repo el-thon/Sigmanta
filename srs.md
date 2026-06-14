@@ -219,6 +219,8 @@ Layer deforestasi, penambangan, wilayah tercemar non-udara, elevasi/terrain, dan
 
 Data kualitas udara OpenAQ ditampilkan dengan nilai konsentrasi, satuan, waktu observasi, sumber, license, confidence, dan interpretasi status. Satuan dibaca dari metadata `/v3/parameters/{id}`, sedangkan nilai terbaru dibaca dari `/v3/parameters/{id}/latest`. Interpretasi memakai kategori konsentrasi ISPU sederhana untuk PM2.5, PM10, SO2, CO, O3, dan NO2 jika unit dari sumber tersedia sebagai `µg/m³`, `mg/m³`, `ppm`, atau `ppb`. Nilai gas dalam `ppm` atau `ppb` dikonversi ke nilai setara `µg/m³` sebelum dikategorikan. Jika unit tidak dikenali, sistem tetap menampilkan nilai mentah dan memberi status "Belum dikategorikan".
 
+Hover public dataset viewer menampilkan rincian teknis sesuai kategori data. Gempa bumi menampilkan magnitude, kedalaman, waktu kejadian, status review, flag tsunami, laporan dirasakan, significance, azimuthal gap, dan RMS jika tersedia dari USGS. Kejadian alam aktif dari NASA EONET menampilkan kategori event, tanggal event, koordinat, sumber event, dan status open/aktif. Hotspot/kebakaran dari NASA FIRMS menampilkan brightness, confidence satelit, Fire Radiative Power (FRP), satelit, instrumen, waktu akuisisi, day/night, scan, track, dan versi data jika tersedia.
+
 ## 11. Segmentasi Lahan
 
 Segmentasi lahan digunakan untuk memetakan penggunaan area.
