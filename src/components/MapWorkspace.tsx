@@ -122,6 +122,7 @@ type PdfReportOptions = {
 type RouteCandidate = {
   object: WorkspaceMapObject;
   point: [number, number];
+  directDistanceM: number;
 };
 type NearbyCandidate = WorkspaceMapObject & {
   distanceM: number;
@@ -968,7 +969,7 @@ export function MapWorkspace({
     durationS: null,
     geometry: null,
   });
-  const [routeTargetId, setRouteTargetId] = useState("fastest");
+  const [routeTargetId, setRouteTargetId] = useState("nearest-road");
   const [nearbyRadiusM, setNearbyRadiusM] = useState(10000);
   const [travelSpeedKmh, setTravelSpeedKmh] = useState(40);
   const [nearbyCandidates, setNearbyCandidates] = useState<NearbyCandidate[]>([]);
@@ -1209,6 +1210,7 @@ export function MapWorkspace({
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
 
     async function findEvacuationRoute() {
       if (!selectedObject) {
@@ -1229,53 +1231,127 @@ export function MapWorkspace({
       }
 
       const candidates = routeCandidates
-        .map((object): RouteCandidate => ({
-          object,
-          point: objectPoint(object) as [number, number],
-          directKm: haversineDistanceMeters(origin, objectPoint(object) as [number, number]) / 1000,
-        }))
-        .sort((left, right) => left.directKm - right.directKm);
+        .map((object): RouteCandidate | null => {
+          const point = objectPoint(object);
+          if (!point) return null;
+          return {
+            object,
+            point,
+            directDistanceM: haversineDistanceMeters(origin, point),
+          };
+        })
+        .filter((candidate): candidate is RouteCandidate => candidate !== null)
+        .sort((left, right) => left.directDistanceM - right.directDistanceM);
 
       if (!candidates.length) {
         setEvacuationRoute({ loading: false, error: "Belum ada titik evakuasi/titik mitigasi untuk dihitung.", target: null, distanceM: null, durationS: null, geometry: null });
         return;
       }
 
-      setEvacuationRoute({ loading: true, error: "", target: null, distanceM: null, durationS: null, geometry: null });
-
-      const selectedTargetId = Number(routeTargetId);
-      const selectedCandidate = Number.isFinite(selectedTargetId)
-        ? candidates.find((candidate) => candidate.object.id === selectedTargetId)
+      const selectedTargetId = routeTargetId === "nearest-road" ? null : Number(routeTargetId);
+      const selectedCandidate = selectedTargetId !== null && Number.isFinite(selectedTargetId)
+        ? candidates.find((candidate) => candidate.object.id === selectedTargetId) ?? null
         : null;
 
-      const nearest = selectedCandidate ?? candidates[0];
-      const distanceM = haversineDistanceMeters(origin, nearest.point);
-      const durationS = durationFromDistanceAndSpeed(distanceM, travelSpeedKmh);
+      if (selectedTargetId !== null && !selectedCandidate) {
+        setEvacuationRoute({ loading: false, error: "Titik evakuasi yang dipilih tidak tersedia dalam kandidat saat ini.", target: null, distanceM: null, durationS: null, geometry: null });
+        return;
+      }
 
-      if (cancelled) return;
+      // Haversine hanya digunakan untuk membatasi jumlah kandidat yang dikirim ke router.
+      // Pemilihan tujuan otomatis tetap ditentukan dari jarak jaringan jalan oleh API routing.
+      const routingCandidates = (selectedCandidate ? [selectedCandidate] : candidates.slice(0, 25));
 
-      setEvacuationRoute({
-        loading: false,
-        error: "",
-        target: nearest.object,
-        distanceM,
-        durationS,
-        geometry: {
-          type: "Feature",
-          properties: { targetId: nearest.object.id, targetName: nearest.object.name },
-          geometry: {
-            type: "LineString",
-            coordinates: [origin, nearest.point],
-          },
-        },
-      });
+      setEvacuationRoute({ loading: true, error: "", target: null, distanceM: null, durationS: null, geometry: null });
+
+      try {
+        const response = await fetch("/api/routing/evacuation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          signal: controller.signal,
+          body: JSON.stringify({
+            origin,
+            targetId: selectedCandidate?.object.id ?? null,
+            destinations: routingCandidates.map((candidate) => ({
+              id: candidate.object.id,
+              name: candidate.object.name,
+              coordinates: candidate.point,
+            })),
+          }),
+        });
+
+        const payload = await response.json().catch(() => null);
+        if (cancelled) return;
+
+        if (!response.ok || !payload?.route) {
+          setEvacuationRoute({
+            loading: false,
+            error: payload?.message ?? "Rute jaringan jalan gagal dihitung.",
+            target: null,
+            distanceM: null,
+            durationS: null,
+            geometry: null,
+          });
+          return;
+        }
+
+        const target = candidates.find((candidate) => candidate.object.id === Number(payload.route.targetId))?.object ?? null;
+        if (!target) {
+          setEvacuationRoute({
+            loading: false,
+            error: "Hasil routing tidak cocok dengan titik evakuasi yang tersedia.",
+            target: null,
+            distanceM: null,
+            durationS: null,
+            geometry: null,
+          });
+          return;
+        }
+
+        const distanceM = Number(payload.route.distanceM);
+        const durationS = Number(payload.route.durationS);
+        const geometry = payload.route.geometry as Feature | undefined;
+
+        if (!Number.isFinite(distanceM) || !Number.isFinite(durationS) || geometry?.geometry?.type !== "LineString") {
+          setEvacuationRoute({
+            loading: false,
+            error: "Data rute yang diterima dari layanan routing tidak valid.",
+            target: null,
+            distanceM: null,
+            durationS: null,
+            geometry: null,
+          });
+          return;
+        }
+
+        setEvacuationRoute({
+          loading: false,
+          error: "",
+          target,
+          distanceM,
+          durationS,
+          geometry,
+        });
+      } catch (error) {
+        if (cancelled || (error instanceof DOMException && error.name === "AbortError")) return;
+        setEvacuationRoute({
+          loading: false,
+          error: "Layanan routing jalan tidak dapat dihubungi. Periksa koneksi atau konfigurasi OSRM_BASE_URL.",
+          target: null,
+          distanceM: null,
+          durationS: null,
+          geometry: null,
+        });
+      }
     }
 
     void findEvacuationRoute();
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [layerById, routeCandidates, routeTargetId, selectedObject, travelSpeedKmh]);
+  }, [layerById, routeCandidates, routeTargetId, selectedObject]);
 
   const handleMapReady = useCallback((map: L.Map | null) => {
     mapRef.current = map;
@@ -1744,12 +1820,13 @@ export function MapWorkspace({
                 color: "#185FA5",
                 weight: 6,
                 opacity: 0.92,
-                dashArray: "10 8",
+                lineCap: "round",
+                lineJoin: "round",
               })}
             >
               <Tooltip sticky direction="top" opacity={0.96}>
                 <div className="max-w-64">
-                  <p className="font-bold">Evakuasi - Jarak Langsung</p>
+                  <p className="font-bold">Evakuasi - Rute Jalan</p>
                   <p className="mt-1 text-xs">{evacuationRoute.target?.name}</p>
                   <p className="mt-2 text-xs leading-5">
                     {formatDistance(evacuationRoute.distanceM)} · {formatDuration(evacuationRoute.durationS)}
@@ -1959,10 +2036,10 @@ export function MapWorkspace({
 
                 return (
                   <div>
-                    <p className="label-mono mb-3">Evakuasi - Jarak Langsung</p>
+                    <p className="label-mono mb-3">Evakuasi - Rute Jalan</p>
                     <div className="brutal-card bg-earth-light p-4 text-sm">
                       {evacuationRoute.loading ? (
-                        <p className="text-earth-dark/65">Menghitung jarak langsung ke titik evakuasi...</p>
+                        <p className="text-earth-dark/65">Menghitung rute melalui jaringan jalan...</p>
                       ) : evacuationRoute.error ? (
                         <div className="space-y-4">
                           <div className="space-y-3">
@@ -2000,7 +2077,7 @@ export function MapWorkspace({
                                       type="button"
                                     >
                                       <span className="min-w-0 truncate font-bold">{candidate.name}</span>
-                                      <span className="shrink-0 text-earth-dark/60">{formatDistance(candidate.distanceM)} langsung</span>
+                                      <span className="shrink-0 text-earth-dark/60">{formatDistance(candidate.distanceM)} radius</span>
                                     </button>
                                   ))}
                                 </div>
@@ -2013,7 +2090,7 @@ export function MapWorkspace({
                                 onChange={(event) => setRouteTargetId(event.target.value)}
                                 value={routeTargetId}
                               >
-                                <option value="fastest">Titik evakuasi terdekat otomatis</option>
+                                <option value="nearest-road">Titik evakuasi terdekat melalui jalan</option>
                                 {routeCandidates.map((candidate) => (
                                   <option key={candidate.id} value={candidate.id}>{candidate.name}</option>
                                 ))}
@@ -2072,7 +2149,7 @@ export function MapWorkspace({
                                       type="button"
                                     >
                                       <span className="min-w-0 truncate font-bold">{candidate.name}</span>
-                                      <span className="shrink-0 text-earth-dark/60">{formatDistance(candidate.distanceM)} langsung</span>
+                                      <span className="shrink-0 text-earth-dark/60">{formatDistance(candidate.distanceM)} radius</span>
                                     </button>
                                   ))}
                                 </div>
@@ -2085,7 +2162,7 @@ export function MapWorkspace({
                                 onChange={(event) => setRouteTargetId(event.target.value)}
                                 value={routeTargetId}
                               >
-                                <option value="fastest">Titik evakuasi terdekat otomatis</option>
+                                <option value="nearest-road">Titik evakuasi terdekat melalui jalan</option>
                                 {routeCandidates.map((candidate) => (
                                   <option key={candidate.id} value={candidate.id}>{candidate.name}</option>
                                 ))}
@@ -2112,14 +2189,18 @@ export function MapWorkspace({
                                 <div className="min-w-0">
                                   <p className="font-bold leading-6">{evacuationRoute.target.name}</p>
                                   <p className="mt-1 text-xs leading-5 text-earth-dark/60">
-                                    {routeTargetId === "fastest" ? "Dipilih dari kandidat titik mitigasi berdasarkan jarak langsung terdekat." : "Tujuan dipilih manual dari titik evakuasi yang sudah dibuat."}
+                                    {routeTargetId === "nearest-road" ? "Dipilih dari kandidat titik mitigasi berdasarkan jarak tempuh melalui jaringan jalan yang paling dekat." : "Tujuan dipilih manual, sedangkan jalurnya tetap mengikuti jaringan jalan."}
                                   </p>
                                 </div>
                               </div>
                               <div className="grid grid-cols-1 gap-3 min-[1180px]:grid-cols-2">
                                 <div className="border border-earth-dark/15 bg-earth-paper px-3 py-2">
-                                  <p className="text-xs text-earth-dark/55">Jarak Langsung</p>
+                                  <p className="text-xs text-earth-dark/55">Jarak Rute Jalan</p>
                                   <p className="mt-1 font-bold">{formatDistance(evacuationRoute.distanceM)}</p>
+                                </div>
+                                <div className="border border-earth-dark/15 bg-earth-paper px-3 py-2">
+                                  <p className="text-xs text-earth-dark/55">Durasi Routing OSRM</p>
+                                  <p className="mt-1 font-bold">{formatDuration(evacuationRoute.durationS)}</p>
                                 </div>
                                 {vehicleEstimates(evacuationRoute.distanceM, travelSpeedKmh).map((estimate) => (
                                   <div key={estimate.label} className="border border-earth-dark/15 bg-earth-paper px-3 py-2">
