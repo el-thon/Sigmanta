@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ExternalLink, Filter, Globe2, Layers3, Search } from "lucide-react";
+import { ExternalLink, Filter, Globe2, Layers3, Search, UploadCloud, X } from "lucide-react";
 import type { PublicDatasetFeature, PublicDatasetLayer } from "@/lib/publicDatasetCatalog";
 
 type PublicDatasetResponse = {
@@ -13,6 +13,12 @@ type PublicDatasetResponse = {
     nasaFirmsConfigured: boolean;
     openAqConfigured: boolean;
   };
+};
+
+type UserProject = {
+  id: number;
+  name: string;
+  locationName?: string | null;
 };
 
 declare global {
@@ -82,6 +88,13 @@ export function PublicDatasetEarth() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategories, setActiveCategories] = useState<Set<string>>(new Set(DEFAULT_ACTIVE_CATEGORIES));
   const [hovered, setHovered] = useState<PublicDatasetFeature | null>(null);
+  const [projects, setProjects] = useState<UserProject[] | null>(null);
+  const [importFeature, setImportFeature] = useState<PublicDatasetFeature | null>(null);
+  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [importing, setImporting] = useState(false);
+  const [importMessage, setImportMessage] = useState("");
+  const [importWorkspaceUrl, setImportWorkspaceUrl] = useState("");
+  const [importError, setImportError] = useState("");
 
   const visibleFeatures = useMemo(() => {
     return (data?.features ?? []).filter((feature) => activeCategories.has(feature.category) && featureMatches(feature, searchTerm));
@@ -106,6 +119,33 @@ export function PublicDatasetEarth() {
     }
 
     void loadData();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadProjects() {
+      try {
+        const response = await fetch("/api/projects", { cache: "no-store" });
+        if (!response.ok) {
+          if (!cancelled) setProjects(null);
+          return;
+        }
+        const payload = await response.json();
+        const items = Array.isArray(payload?.projects) ? payload.projects : [];
+        if (!cancelled) {
+          setProjects(items);
+          setSelectedProjectId(items[0]?.id ? String(items[0].id) : "");
+        }
+      } catch {
+        if (!cancelled) setProjects(null);
+      }
+    }
+
+    void loadProjects();
     return () => {
       cancelled = true;
     };
@@ -210,6 +250,41 @@ export function PublicDatasetEarth() {
       else next.add(id);
       return next;
     });
+  }
+
+  function openImportModal(feature: PublicDatasetFeature) {
+    setImportFeature(feature);
+    setImportMessage("");
+    setImportWorkspaceUrl("");
+    setImportError("");
+    setSelectedProjectId((current) => current || (projects?.[0]?.id ? String(projects[0].id) : ""));
+  }
+
+  async function importSelectedFeature() {
+    if (!importFeature || !selectedProjectId) return;
+    setImporting(true);
+    setImportMessage("");
+    setImportWorkspaceUrl("");
+    setImportError("");
+
+    try {
+      const response = await fetch(`/api/projects/${selectedProjectId}/import-public-feature`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ feature: importFeature }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        setImportError(payload?.message ?? "Import fitur publik gagal.");
+        return;
+      }
+      setImportMessage("Fitur publik berhasil diimpor.");
+      setImportWorkspaceUrl(typeof payload?.workspaceUrl === "string" ? payload.workspaceUrl : "");
+    } catch {
+      setImportError("Import fitur publik gagal.");
+    } finally {
+      setImporting(false);
+    }
   }
 
   return (
@@ -317,6 +392,71 @@ export function PublicDatasetEarth() {
                   <a className="mt-3 inline-flex items-center gap-2 font-bold text-moss" href={hovered.source_url} rel="noreferrer" target="_blank">
                     Buka sumber <ExternalLink size={13} />
                   </a>
+                  {projects !== null ? (
+                    <button
+                      className="mt-3 ml-3 inline-flex items-center gap-2 font-bold text-earth-dark"
+                      disabled={!projects.length}
+                      onClick={() => openImportModal(hovered)}
+                      type="button"
+                    >
+                      Import ke project <UploadCloud size={13} />
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {importFeature ? (
+                <div className="absolute inset-0 z-20 flex items-center justify-center bg-earth-dark/45 p-4">
+                  <div className="w-full max-w-md border-2 border-earth-dark bg-earth-light p-4 text-xs shadow-[5px_5px_0_#1c1a14]">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="label-mono text-moss">Import public dataset</p>
+                        <h3 className="mt-2 text-base font-bold">{importFeature.label}</h3>
+                        <p className="mt-2 leading-5 text-earth-dark/65">{importFeature.summary}</p>
+                      </div>
+                      <button className="border-2 border-earth-dark p-1" onClick={() => setImportFeature(null)} type="button">
+                        <X size={15} />
+                      </button>
+                    </div>
+
+                    <label className="mt-4 block">
+                      <span className="label-mono text-earth-dark/60">Project tujuan</span>
+                      <select
+                        className="mt-2 w-full border-2 border-earth-dark bg-earth-paper px-3 py-2 outline-none"
+                        onChange={(event) => setSelectedProjectId(event.target.value)}
+                        value={selectedProjectId}
+                      >
+                        {projects?.map((project) => (
+                          <option key={project.id} value={project.id}>
+                            {project.name}{project.locationName ? ` - ${project.locationName}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    {!projects?.length ? (
+                      <p className="mt-3 border-2 border-earth-dark/15 bg-earth-paper p-3 text-earth-dark/65">Belum ada project tujuan. Buat project terlebih dahulu dari dashboard.</p>
+                    ) : null}
+                    {importError ? <p className="mt-3 border-2 border-hazard bg-hazard-light p-3 text-earth-dark">{importError}</p> : null}
+                    {importMessage ? (
+                      <p className="mt-3 border-2 border-moss bg-moss-light p-3 text-earth-dark">
+                        {importWorkspaceUrl ? (
+                          <>
+                            {importMessage} <a className="font-bold underline" href={importWorkspaceUrl}>Buka workspace</a>
+                          </>
+                        ) : importMessage}
+                      </p>
+                    ) : null}
+
+                    <button
+                      className="brutal-button mt-4 inline-flex items-center gap-2 bg-moss px-4 py-3 text-earth-light disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={importing || !selectedProjectId || !projects?.length}
+                      onClick={importSelectedFeature}
+                      type="button"
+                    >
+                      {importing ? "Mengimpor..." : "Import ke Project"} <UploadCloud size={15} />
+                    </button>
+                  </div>
                 </div>
               ) : null}
 

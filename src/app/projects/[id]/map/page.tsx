@@ -60,6 +60,7 @@ export default async function ProjectMapPage({ params }: { params: Promise<{ id:
         projectId={project.id}
         projectName={project.name}
         projectLocation={project.locationName ?? "Disaster Mitigation Unit"}
+        exporterName={user.name}
         center={center}
         zoom={project.defaultZoom ?? 13}
         layers={project.layers.map((layer) => ({

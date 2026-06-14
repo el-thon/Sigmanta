@@ -18,21 +18,17 @@ services:
       retries: 5
 
   app:
-    image: node:22-alpine
+    image: node:22
     container_name: sigmanta-app
     working_dir: /app
-    command: sh -c "npm install && npx prisma generate && npx prisma db push && npm run prisma:seed && npm run dev -- --hostname 0.0.0.0"
+    command: sh -c "npm install && npx prisma generate && npx prisma db push --accept-data-loss && (npm run prisma:seed || true) && npm run dev"
     ports:
       - "3000:3000"
     environment:
       DATABASE_URL: postgresql://sigmanta:sigmanta@db:5432/sigmanta?schema=public
       JWT_SECRET: change-this-secret-in-production
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      R2_ENDPOINT: ${R2_ENDPOINT}
-      R2_BUCKET: ${R2_BUCKET}
-      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
-      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
-      R2_PUBLIC_URL: ${R2_PUBLIC_URL:-/api/storage}
+      HOSTNAME: "0.0.0.0"
     volumes:
       - .:/app
       - node_modules:/app/node_modules

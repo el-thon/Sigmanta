@@ -1,4 +1,5 @@
 import { ArrowRight, Download, Link, Map, MapPinned, Pencil, Pin, Route, TriangleAlert } from "lucide-react";
+import type { CSSProperties } from "react";
 import { EarthGlobe3D } from "@/components/EarthGlobe3D";
 import { MotionReveal } from "@/components/MotionReveal";
 import { PublicDatasetEarth } from "@/components/PublicDatasetEarth";
@@ -143,13 +144,13 @@ export function EarthVideoHero({ currentUser }: { currentUser?: AuthUser | null 
           <span className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.18em] text-earth-dark/55">
             <span className="h-px w-9 bg-moss" /> Platform WebGIS Mitigasi Bencana
           </span>
-          <h1 className="font-display mt-8 max-w-3xl text-5xl font-black leading-[1.02] text-earth-dark md:text-7xl">
+          <h1 className="hero-copy-enter font-display mt-8 max-w-3xl text-5xl font-black leading-[1.02] text-earth-dark md:text-7xl">
             <Typewriter />
           </h1>
-          <p className="font-accent mt-12 max-w-xl text-xl leading-9 text-earth-dark/62">
+          <p className="hero-copy-enter-delay font-accent mt-12 max-w-xl text-xl leading-9 text-earth-dark/62">
             Platform pemetaan lahan, identifikasi zona rawan bencana, dan pengelolaan titik mitigasi dalam satu peta interaktif.
           </p>
-          <div className="mt-9 flex flex-wrap gap-5">
+          <div className="hero-cta-enter mt-9 flex flex-wrap gap-5">
             <a className="brutal-button min-w-60 bg-earth-dark px-7 py-4 text-earth-light" href={primaryHref}>
               {primaryLabel} <ArrowRight size={18} />
             </a>
@@ -159,12 +160,12 @@ export function EarthVideoHero({ currentUser }: { currentUser?: AuthUser | null 
           </div>
         </div>
 
-        <div className="relative flex min-h-[390px] w-full items-center justify-center overflow-visible px-5 md:min-h-[620px]">
+        <div className="hero-globe-float relative flex min-h-[390px] w-full items-center justify-center overflow-visible px-5 md:min-h-[620px]">
           <EarthGlobe3D />
         </div>
       </section>
 
-      <div className="border-y-2 border-earth-dark py-5 text-center text-xs uppercase tracking-[0.2em] text-earth-dark/50">
+      <div className="scroll-indicator border-y-2 border-earth-dark py-5 text-center text-xs uppercase tracking-[0.2em] text-earth-dark/50">
         ↓ Jelajahi Fitur
       </div>
 
@@ -184,7 +185,7 @@ export function EarthVideoHero({ currentUser }: { currentUser?: AuthUser | null 
             return (
               <MotionReveal key={feature.title} delay={index * 0.05} className={feature.className}>
                 <article
-                  className={`brutal-card brutal-card-hover relative overflow-hidden p-8 ${feature.height} ${isLightText ? "text-[#f4eee6]" : "text-[#181713]"}`}
+                  className={`brutal-card brutal-card-hover bento-motion relative overflow-hidden p-8 ${feature.height} ${isLightText ? "text-[#f4eee6]" : "text-[#181713]"}`}
                   style={{ backgroundColor: feature.surfaceColor }}
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -216,7 +217,7 @@ export function EarthVideoHero({ currentUser }: { currentUser?: AuthUser | null 
           <div className="mt-12 grid gap-8 md:grid-cols-5">
             {steps.map(([step, body], index) => (
               <MotionReveal key={step} delay={index * 0.12}>
-                <div className="border-l border-earth-dark/15 pl-5">
+                <div className="section-reveal border-l border-earth-dark/15 pl-5" style={{ "--reveal-delay": `${index * 140}ms` } as CSSProperties}>
                   <span className="font-display text-5xl font-black text-earth-dark/10">0{index + 1}</span>
                   <p className="label-mono mt-4">{step}</p>
                   <p className="mt-3 text-sm leading-6 text-earth-dark/55">{body}</p>

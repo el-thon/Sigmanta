@@ -196,6 +196,8 @@ Hak akses:
 7. Data publik yang dapat berubah cepat harus diambil melalui API route/proxy server agar key tidak bocor ke client dan format data dapat dinormalisasi.
 8. Copywriting pada UI public dataset viewer harus menggunakan bahasa produk, misalnya "Peta persebaran data lingkungan dan risiko di dunia", bukan menonjolkan nama engine teknis.
 9. Nama engine seperti CesiumJS boleh muncul di dokumentasi teknis, tetapi tidak digunakan sebagai judul utama section atau label panel di UI.
+10. Tombol import fitur publik hanya ditampilkan untuk user yang sudah login. Guest tetap dapat melihat public dataset, tetapi tidak melihat aksi import.
+11. Import fitur publik ke project dilakukan melalui API server-side agar ownership project, layer tujuan, category mapping, provenance, activity log, dan sinkronisasi PostGIS tetap tervalidasi.
 
 ## 10.2 Kategori Public Dataset
 
@@ -220,6 +222,8 @@ Layer deforestasi, penambangan, wilayah tercemar non-udara, elevasi/terrain, dan
 Data kualitas udara OpenAQ ditampilkan dengan nilai konsentrasi, satuan, waktu observasi, sumber, license, confidence, dan interpretasi status. Satuan dibaca dari metadata `/v3/parameters/{id}`, sedangkan nilai terbaru dibaca dari `/v3/parameters/{id}/latest`. Interpretasi memakai kategori konsentrasi ISPU sederhana untuk PM2.5, PM10, SO2, CO, O3, dan NO2 jika unit dari sumber tersedia sebagai `µg/m³`, `mg/m³`, `ppm`, atau `ppb`. Nilai gas dalam `ppm` atau `ppb` dikonversi ke nilai setara `µg/m³` sebelum dikategorikan. Jika unit tidak dikenali, sistem tetap menampilkan nilai mentah dan memberi status "Belum dikategorikan".
 
 Hover public dataset viewer menampilkan rincian teknis sesuai kategori data. Gempa bumi menampilkan magnitude, kedalaman, waktu kejadian, status review, flag tsunami, laporan dirasakan, significance, azimuthal gap, dan RMS jika tersedia dari USGS. Kejadian alam aktif dari NASA EONET menampilkan kategori event, tanggal event, koordinat, sumber event, dan status open/aktif. Hotspot/kebakaran dari NASA FIRMS menampilkan brightness, confidence satelit, Fire Radiative Power (FRP), satelit, instrumen, waktu akuisisi, day/night, scan, track, dan versi data jika tersedia.
+
+User yang sudah login dapat mengimpor fitur publik dari hover public dataset viewer ke salah satu project miliknya. Sistem membuat object point editable pada layer tujuan: kualitas udara masuk ke layer Marker dan Label, sedangkan gempa, wildfire, dan kejadian alam aktif masuk ke layer Zona Rawan Bencana. Metadata import menyimpan `public_dataset_id`, `public_dataset_category`, `source`, `source_url`, `source_license`, `source_imported_at`, `observed_at`, `confidence`, nilai teknis, dan detail teknis sumber.
 
 ## 11. Segmentasi Lahan
 
@@ -408,6 +412,8 @@ Kemampuan minimal:
 
 CesiumJS digunakan untuk visualisasi 3D global. Workspace editing project tetap menggunakan peta 2D berbasis Leaflet karena proses menggambar dan mengedit polygon lebih ergonomis di 2D.
 
+Endpoint PostGIS nearby digunakan oleh workspace untuk mencari titik mitigasi dan marker terdekat dari zona rawan bencana yang dipilih. Query kandidat dilakukan di database memakai `ST_DWithin` dan `ST_Distance`, lalu frontend memakai hasil tersebut sebagai prioritas target rute evakuasi. Jika PostGIS tidak tersedia atau query gagal, workspace tetap memakai fallback perhitungan browser agar rute evakuasi masih dapat dipakai.
+
 ## 17. ERD Konseptual Revisi
 
 Entity utama:
@@ -529,6 +535,7 @@ Perubahan penting dari konsep sebelumnya:
 3. Titik mitigasi.
 4. Marker fasilitas.
 5. Jalur evakuasi.
+6. Kandidat titik mitigasi/marker terdekat berbasis PostGIS nearby dengan fallback browser.
 
 ### Phase 7 — Export dan Dashboard Summary
 

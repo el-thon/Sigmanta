@@ -14,6 +14,7 @@ function serializeNearbyObject(row: NearbyMapObjectRow) {
     id: row.id,
     projectId: row.project_id,
     layerId: row.layer_id,
+    layerType: row.layer_type,
     categoryId: row.category_id,
     riskLevelId: row.risk_level_id,
     name: row.name,
@@ -83,39 +84,45 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const rows = await prisma.$queryRaw<NearbyMapObjectRow[]>`
       SELECT
-        id,
-        project_id,
-        layer_id,
-        category_id,
-        risk_level_id,
-        name,
-        label,
-        object_type::text AS object_type,
-        geometry_type::text AS geometry_type,
-        area_size,
-        length_size,
-        latitude,
-        longitude,
-        description,
-        notes,
-        geometry,
-        metadata,
-        style_config,
-        created_at,
-        updated_at,
+        map_objects.id,
+        map_objects.project_id,
+        map_objects.layer_id,
+        project_layers.layer_type::text AS layer_type,
+        map_objects.category_id,
+        map_objects.risk_level_id,
+        map_objects.name,
+        map_objects.label,
+        map_objects.object_type::text AS object_type,
+        map_objects.geometry_type::text AS geometry_type,
+        map_objects.area_size,
+        map_objects.length_size,
+        map_objects.latitude,
+        map_objects.longitude,
+        map_objects.description,
+        map_objects.notes,
+        map_objects.geometry,
+        map_objects.metadata,
+        map_objects.style_config,
+        map_objects.created_at,
+        map_objects.updated_at,
         ST_Distance(
           geometry_postgis::geography,
           ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography
         ) AS distance_m
       FROM map_objects
-      WHERE project_id = ${projectId}
+      JOIN project_layers ON project_layers.id = map_objects.layer_id
+      WHERE map_objects.project_id = ${projectId}
         AND geometry_postgis IS NOT NULL
+        AND (
+          project_layers.layer_type IN ('mitigation_resource', 'marker_label')
+          OR map_objects.object_type IN ('resource_point', 'marker')
+        )
         AND ST_DWithin(
           geometry_postgis::geography,
           ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography,
           ${radius}
         )
-      ORDER BY distance_m ASC, updated_at DESC
+      ORDER BY distance_m ASC, map_objects.updated_at DESC
       LIMIT 50
     `;
 

@@ -58,6 +58,7 @@ export type MapWorkspaceProps = {
   projectId: number;
   projectName: string;
   projectLocation?: string;
+  exporterName?: string;
   center?: [number, number];
   zoom?: number;
   layers: WorkspaceLayer[];
@@ -106,11 +107,19 @@ type ReportLegendEntry = {
   color: string;
   count: number;
 };
+type ReportListEntry = {
+  label: string;
+  value: string;
+  color?: string;
+};
 type PdfReportOptions = {
   projectName: string;
   projectLocation: string;
+  exporterName: string;
   infoLines: string[];
   legendEntries: ReportLegendEntry[];
+  riskEntries: ReportListEntry[];
+  mitigationEntries: ReportListEntry[];
   exportedAt: Date;
   scaleMeters: number | null;
   mapCenter: L.LatLng;
@@ -120,6 +129,10 @@ type RouteCandidate = {
   object: WorkspaceMapObject;
   point: [number, number];
   directKm: number;
+};
+type NearbyCandidate = WorkspaceMapObject & {
+  distanceM: number;
+  layerType?: LayerType;
 };
 type BoundaryResult = {
   id: string;
@@ -522,6 +535,38 @@ function drawReportSectionTitle(ctx: CanvasRenderingContext2D, title: string, x:
   ctx.stroke();
 }
 
+function drawReportEntries(ctx: CanvasRenderingContext2D, entries: ReportListEntry[], x: number, y: number, maxWidth: number, maxItems: number) {
+  ctx.font = "700 17px monospace";
+  let cursorY = y;
+  entries.slice(0, maxItems).forEach((entry) => {
+    if (entry.color) {
+      ctx.fillStyle = entry.color;
+      ctx.fillRect(x, cursorY - 14, 18, 18);
+      ctx.strokeStyle = "#1c1a14";
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(x, cursorY - 14, 18, 18);
+    }
+    ctx.fillStyle = "#1c1a14";
+    const labelX = entry.color ? x + 28 : x;
+    const usedHeight = drawWrappedText(ctx, `${entry.label}: ${entry.value}`, labelX, cursorY, maxWidth - (entry.color ? 28 : 0), 21, 2);
+    cursorY += Math.max(24, usedHeight + 8);
+  });
+
+  if (entries.length > maxItems) {
+    ctx.fillStyle = "rgba(28,26,20,0.62)";
+    ctx.fillText(`+${entries.length - maxItems} item lain`, x, cursorY);
+    cursorY += 24;
+  }
+
+  if (!entries.length) {
+    ctx.fillStyle = "rgba(28,26,20,0.62)";
+    ctx.fillText("Tidak ada data terlihat", x, cursorY);
+    cursorY += 24;
+  }
+
+  return cursorY;
+}
+
 function niceScaleDistance(maxMeters: number) {
   const distances = [50, 100, 250, 500, 1000, 2500, 5000, 10000, 25000, 50000, 100000, 250000, 500000];
   return distances.filter((distance) => distance <= maxMeters).pop() ?? distances[0];
@@ -656,33 +701,31 @@ function createCartographicReportCanvas(mapCanvas: HTMLCanvasElement, options: P
   ctx.fillStyle = "rgba(28,26,20,0.68)";
   drawWrappedText(ctx, options.projectLocation || "Lokasi belum diatur", sidebar.x + 26, sidebar.y + 178, sidebar.width - 52, 24, 2);
 
-  let cursorY = sidebar.y + 250;
+  let cursorY = sidebar.y + 234;
   drawReportSectionTitle(ctx, "Ringkasan", sidebar.x + 26, cursorY);
-  cursorY += 44;
-  ctx.font = "700 20px monospace";
+  cursorY += 38;
+  ctx.font = "700 18px monospace";
   ctx.fillStyle = "#1c1a14";
   options.infoLines.slice(2, 7).forEach((line) => {
-    cursorY += drawWrappedText(ctx, line, sidebar.x + 26, cursorY, sidebar.width - 52, 28, 2) + 8;
+    cursorY += drawWrappedText(ctx, line, sidebar.x + 26, cursorY, sidebar.width - 52, 23, 1) + 4;
   });
 
-  cursorY += 18;
+  cursorY += 16;
+  drawReportSectionTitle(ctx, "Risiko", sidebar.x + 26, cursorY);
+  cursorY = drawReportEntries(ctx, options.riskEntries, sidebar.x + 28, cursorY + 38, sidebar.width - 58, 4) + 12;
+
+  drawReportSectionTitle(ctx, "Mitigasi / Marker", sidebar.x + 26, cursorY);
+  cursorY = drawReportEntries(ctx, options.mitigationEntries, sidebar.x + 28, cursorY + 38, sidebar.width - 58, 4) + 12;
+
   drawReportSectionTitle(ctx, "Legenda", sidebar.x + 26, cursorY);
-  cursorY += 46;
-  ctx.font = "700 18px monospace";
-  options.legendEntries.slice(0, 12).forEach((entry) => {
-    ctx.fillStyle = entry.color;
-    ctx.fillRect(sidebar.x + 28, cursorY - 15, 22, 22);
-    ctx.strokeStyle = "#1c1a14";
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(sidebar.x + 28, cursorY - 15, 22, 22);
-    ctx.fillStyle = "#1c1a14";
-    drawWrappedText(ctx, `${entry.label} (${entry.count})`, sidebar.x + 62, cursorY + 2, sidebar.width - 92, 21, 2);
-    cursorY += 46;
-  });
-  if (!options.legendEntries.length) {
-    ctx.fillStyle = "rgba(28,26,20,0.64)";
-    ctx.fillText("Tidak ada objek terlihat", sidebar.x + 28, cursorY);
-  }
+  drawReportEntries(
+    ctx,
+    options.legendEntries.map((entry) => ({ label: entry.label, value: `${entry.count} objek`, color: entry.color })),
+    sidebar.x + 28,
+    cursorY + 38,
+    sidebar.width - 58,
+    5
+  );
 
   ctx.fillStyle = "#1c1a14";
   ctx.fillRect(footer.x, footer.y, footer.width, footer.height);
@@ -691,8 +734,9 @@ function createCartographicReportCanvas(mapCanvas: HTMLCanvasElement, options: P
   ctx.fillText("SIGMANTA GIS", footer.x + 28, footer.y + 42);
   ctx.font = "700 17px monospace";
   ctx.fillText(`Export: ${options.exportedAt.toLocaleString("id-ID")}`, footer.x + 28, footer.y + 78);
-  ctx.fillText(`Center: ${options.mapCenter.lat.toFixed(5)}, ${options.mapCenter.lng.toFixed(5)}`, footer.x + 460, footer.y + 78);
-  ctx.fillText("Sumber: data project dan objek yang aktif pada workspace", footer.x + 900, footer.y + 78);
+  ctx.fillText(`Exporter: ${options.exporterName}`, footer.x + 420, footer.y + 42);
+  ctx.fillText(`Center: ${options.mapCenter.lat.toFixed(5)}, ${options.mapCenter.lng.toFixed(5)}`, footer.x + 420, footer.y + 78);
+  ctx.fillText("Sumber: data project dan objek aktif pada workspace", footer.x + 900, footer.y + 78);
 
   return canvas;
 }
@@ -857,6 +901,7 @@ export function MapWorkspace({
   projectId,
   projectName,
   projectLocation = "Disaster Mitigation Unit",
+  exporterName = "SIGMANTA User",
   center = [-5.3971, 105.2668],
   zoom = 13,
   layers,
@@ -895,6 +940,10 @@ export function MapWorkspace({
     geometry: null,
   });
   const [routeTargetId, setRouteTargetId] = useState("fastest");
+  const [nearbyRadiusM, setNearbyRadiusM] = useState(10000);
+  const [nearbyCandidates, setNearbyCandidates] = useState<NearbyCandidate[]>([]);
+  const [nearbyLoading, setNearbyLoading] = useState(false);
+  const [nearbyError, setNearbyError] = useState("");
   const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
@@ -931,6 +980,9 @@ export function MapWorkspace({
       return layer?.layerType === "mitigation_resource" && Boolean(objectPoint(object));
     });
   }, [layerById, objects]);
+  const routeCandidates = useMemo(() => {
+    return nearbyCandidates.length ? nearbyCandidates : evacuationCandidates;
+  }, [evacuationCandidates, nearbyCandidates]);
 
   const exportObjects = useMemo(() => {
     const draftLayer = draft ? layerByType.get(draft.tool.layerType) : null;
@@ -1015,6 +1067,116 @@ export function MapWorkspace({
     return lines;
   }, [exportObjects, layerById, projectLocation, projectName, riskById, selectedObject]);
 
+  const pdfRiskEntries = useMemo(() => {
+    const entries = new Map<string, ReportListEntry & { count: number; areaHa: number }>();
+    exportObjects.forEach((object) => {
+      const layer = layerById.get(object.layerId);
+      if (!isDisasterObject(object, layer)) return;
+      const risk = object.riskLevelId ? riskById.get(object.riskLevelId) : null;
+      const key = risk?.code ?? "unknown";
+      const current = entries.get(key) ?? {
+        label: risk?.name ?? "Belum dinilai",
+        value: "",
+        color: risk?.color ?? "#888780",
+        count: 0,
+        areaHa: 0,
+      };
+      current.count += 1;
+      current.areaHa += Number(object.areaSize ?? 0) / 10000;
+      entries.set(key, current);
+    });
+
+    return Array.from(entries.values())
+      .sort((left, right) => {
+        const leftRisk = riskLevels.find((risk) => risk.name === left.label);
+        const rightRisk = riskLevels.find((risk) => risk.name === right.label);
+        return (rightRisk?.score ?? 0) - (leftRisk?.score ?? 0);
+      })
+      .map((entry) => ({
+        label: entry.label,
+        value: `${entry.count} zona, ${entry.areaHa.toFixed(2)} Ha`,
+        color: entry.color,
+      }));
+  }, [exportObjects, layerById, riskById, riskLevels]);
+
+  const pdfMitigationEntries = useMemo(() => {
+    return exportObjects
+      .filter((object) => {
+        const layer = layerById.get(object.layerId);
+        return layer?.layerType === "mitigation_resource" || layer?.layerType === "marker_label" || object.objectType === "resource_point" || object.objectType === "marker";
+      })
+      .slice(0, 12)
+      .map((object) => {
+        const layer = layerById.get(object.layerId);
+        const point = objectPoint(object);
+        return {
+          label: object.label || object.name,
+          value: `${layer?.name ?? object.objectType}${point ? `, ${point[1].toFixed(4)}, ${point[0].toFixed(4)}` : ""}`,
+          color: getObjectColor(object),
+        };
+      });
+  }, [exportObjects, getObjectColor, layerById]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadNearbyCandidates() {
+      if (!selectedObject) {
+        setNearbyCandidates([]);
+        setNearbyError("");
+        setNearbyLoading(false);
+        return;
+      }
+
+      const selectedLayer = layerById.get(selectedObject.layerId);
+      if (!isDisasterObject(selectedObject, selectedLayer)) {
+        setNearbyCandidates([]);
+        setNearbyError("");
+        setNearbyLoading(false);
+        return;
+      }
+
+      const origin = objectPoint(selectedObject);
+      if (!origin) {
+        setNearbyCandidates([]);
+        setNearbyError("Titik asal zona rawan tidak bisa dihitung untuk query PostGIS.");
+        setNearbyLoading(false);
+        return;
+      }
+
+      setNearbyLoading(true);
+      setNearbyError("");
+
+      try {
+        const response = await fetch(`/api/projects/${projectId}/spatial/nearby?lat=${origin[1]}&lng=${origin[0]}&radius=${nearbyRadiusM}`, { cache: "no-store" });
+        const payload = await response.json().catch(() => null);
+        if (cancelled) return;
+
+        if (!response.ok) {
+          setNearbyCandidates([]);
+          setNearbyError(payload?.message ?? "Query PostGIS nearby gagal. Fallback browser dipakai.");
+          return;
+        }
+
+        const objects = Array.isArray(payload?.objects) ? payload.objects : [];
+        setNearbyCandidates(objects.filter((object: NearbyCandidate) => Boolean(objectPoint(object))));
+        if (!objects.length) setNearbyError("Tidak ada titik mitigasi/marker dalam radius PostGIS. Fallback browser dipakai.");
+      } catch {
+        if (!cancelled) {
+          setNearbyCandidates([]);
+          setNearbyError("Query PostGIS nearby gagal. Fallback browser dipakai.");
+        }
+      } finally {
+        if (!cancelled) setNearbyLoading(false);
+      }
+    }
+
+    void loadNearbyCandidates();
+    return () => {
+      cancelled = true;
+    };
+  }, [layerById, nearbyRadiusM, projectId, selectedObject]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -1055,7 +1217,7 @@ export function MapWorkspace({
         return;
       }
 
-      const candidates = evacuationCandidates
+      const candidates = routeCandidates
         .map((object): RouteCandidate => ({
           object,
           point: objectPoint(object) as [number, number],
@@ -1103,7 +1265,7 @@ export function MapWorkspace({
     return () => {
       cancelled = true;
     };
-  }, [evacuationCandidates, layerById, routeTargetId, selectedObject]);
+  }, [layerById, routeCandidates, routeTargetId, selectedObject]);
 
   const handleMapReady = useCallback((map: L.Map | null) => {
     mapRef.current = map;
@@ -1127,14 +1289,17 @@ export function MapWorkspace({
       await exportLeafletReportPdf(map, exportObjects, getObjectColor, {
         projectName,
         projectLocation,
+        exporterName,
         infoLines: pdfInfoLines,
         legendEntries: pdfLegendEntries,
+        riskEntries: pdfRiskEntries,
+        mitigationEntries: pdfMitigationEntries,
       });
       dispatchWorkspaceAction("pdf", "success", "PDF peta berhasil didownload.");
     } catch (error) {
       dispatchWorkspaceAction("pdf", "error", error instanceof Error ? error.message : "Export PDF gagal.");
     }
-  }, [exportObjects, getObjectColor, pdfInfoLines, pdfLegendEntries, projectLocation, projectName]);
+  }, [exportObjects, exporterName, getObjectColor, pdfInfoLines, pdfLegendEntries, pdfMitigationEntries, pdfRiskEntries, projectLocation, projectName]);
 
   const saveProjectView = useCallback(async () => {
     const map = mapRef.current;
@@ -1795,6 +1960,42 @@ export function MapWorkspace({
                               <p className="text-xs font-bold uppercase text-earth-dark/55">Dari</p>
                               <p className="mt-1 border border-earth-dark/15 bg-earth-paper px-3 py-2 font-bold">{selectedObject.name}</p>
                             </div>
+                            <div className="border border-earth-dark/15 bg-earth-paper p-3">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-xs font-bold uppercase text-earth-dark/55">Titik terdekat</span>
+                                <label className="flex items-center gap-2 text-xs">
+                                  Radius
+                                  <select
+                                    className="border border-earth-dark bg-earth-light px-2 py-1 outline-none"
+                                    onChange={(event) => setNearbyRadiusM(Number(event.target.value))}
+                                    value={nearbyRadiusM}
+                                  >
+                                    <option value={1000}>1 km</option>
+                                    <option value={5000}>5 km</option>
+                                    <option value={10000}>10 km</option>
+                                    <option value={25000}>25 km</option>
+                                    <option value={50000}>50 km</option>
+                                  </select>
+                                </label>
+                              </div>
+                              {nearbyLoading ? <p className="mt-2 text-xs text-earth-dark/60">Mengambil kandidat dari PostGIS...</p> : null}
+                              {nearbyError ? <p className="mt-2 text-xs leading-5 text-hazard">{nearbyError}</p> : null}
+                              {nearbyCandidates.length ? (
+                                <div className="mt-2 space-y-1.5">
+                                  {nearbyCandidates.slice(0, 5).map((candidate) => (
+                                    <button
+                                      key={`nearby-error-${candidate.id}`}
+                                      className="flex w-full items-center justify-between gap-2 border border-earth-dark/15 bg-earth-light px-2 py-1.5 text-left hover:border-earth-dark"
+                                      onClick={() => setRouteTargetId(String(candidate.id))}
+                                      type="button"
+                                    >
+                                      <span className="min-w-0 truncate font-bold">{candidate.name}</span>
+                                      <span className="shrink-0 text-earth-dark/60">{formatDistance(candidate.distanceM)}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
                             <label className="block">
                               <span className="text-xs font-bold uppercase text-earth-dark/55">Ke</span>
                               <select
@@ -1803,7 +2004,7 @@ export function MapWorkspace({
                                 value={routeTargetId}
                               >
                                 <option value="fastest">Titik evakuasi tercepat otomatis</option>
-                                {evacuationCandidates.map((candidate) => (
+                                {routeCandidates.map((candidate) => (
                                   <option key={candidate.id} value={candidate.id}>{candidate.name}</option>
                                 ))}
                               </select>
@@ -1818,6 +2019,42 @@ export function MapWorkspace({
                               <p className="text-xs font-bold uppercase text-earth-dark/55">Dari</p>
                               <p className="mt-1 border border-earth-dark/15 bg-earth-paper px-3 py-2 font-bold">{selectedObject.name}</p>
                             </div>
+                            <div className="border border-earth-dark/15 bg-earth-paper p-3">
+                              <div className="flex items-center justify-between gap-3">
+                                <span className="text-xs font-bold uppercase text-earth-dark/55">Titik terdekat</span>
+                                <label className="flex items-center gap-2 text-xs">
+                                  Radius
+                                  <select
+                                    className="border border-earth-dark bg-earth-light px-2 py-1 outline-none"
+                                    onChange={(event) => setNearbyRadiusM(Number(event.target.value))}
+                                    value={nearbyRadiusM}
+                                  >
+                                    <option value={1000}>1 km</option>
+                                    <option value={5000}>5 km</option>
+                                    <option value={10000}>10 km</option>
+                                    <option value={25000}>25 km</option>
+                                    <option value={50000}>50 km</option>
+                                  </select>
+                                </label>
+                              </div>
+                              {nearbyLoading ? <p className="mt-2 text-xs text-earth-dark/60">Mengambil kandidat dari PostGIS...</p> : null}
+                              {nearbyError ? <p className="mt-2 text-xs leading-5 text-hazard">{nearbyError}</p> : null}
+                              {nearbyCandidates.length ? (
+                                <div className="mt-2 space-y-1.5">
+                                  {nearbyCandidates.slice(0, 5).map((candidate) => (
+                                    <button
+                                      key={`nearby-success-${candidate.id}`}
+                                      className="flex w-full items-center justify-between gap-2 border border-earth-dark/15 bg-earth-light px-2 py-1.5 text-left hover:border-earth-dark"
+                                      onClick={() => setRouteTargetId(String(candidate.id))}
+                                      type="button"
+                                    >
+                                      <span className="min-w-0 truncate font-bold">{candidate.name}</span>
+                                      <span className="shrink-0 text-earth-dark/60">{formatDistance(candidate.distanceM)}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
                             <label className="block">
                               <span className="text-xs font-bold uppercase text-earth-dark/55">Ke</span>
                               <select
@@ -1826,7 +2063,7 @@ export function MapWorkspace({
                                 value={routeTargetId}
                               >
                                 <option value="fastest">Titik evakuasi tercepat otomatis</option>
-                                {evacuationCandidates.map((candidate) => (
+                                {routeCandidates.map((candidate) => (
                                   <option key={candidate.id} value={candidate.id}>{candidate.name}</option>
                                 ))}
                               </select>

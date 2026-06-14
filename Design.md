@@ -273,6 +273,8 @@ Panel hover harus menampilkan:
 - Confidence.
 - Waktu import.
 - Link sumber.
+- Tombol `Import ke project` hanya untuk user login. Guest tidak melihat tombol import.
+- Modal import menampilkan nama fitur, ringkasan, pilihan project tujuan, status sukses/gagal, dan link `Buka workspace` setelah import berhasil.
 
 **Visual:**
 
@@ -369,6 +371,8 @@ Durasi: `350ms ease` untuk exit, `400ms ease` untuk enter.
 ```
 
 Gunakan `IntersectionObserver` dengan `threshold: 0.15`.
+
+Implementasi saat ini menggunakan kombinasi `MotionReveal` berbasis Framer Motion untuk section utama dan native CSS keyframes untuk hero copy, CTA, globe float, scroll indicator, bento hover, stagger step, smooth scroll, serta reduced-motion guard.
 
 ### 6.3 Bento Tile Hover
 
@@ -534,6 +538,7 @@ Bento grid 3 kolom untuk daftar project:
 - Muncul saat user klik objek di peta
 - Animasi: slide in dari kanan `translateX(100%) → translateX(0)` dengan `ease-out 280ms`
 - Glass accent + brutal border kiri
+- Saat objek zona rawan bencana dipilih, panel menampilkan kandidat titik mitigasi/marker terdekat dari PostGIS nearby, kontrol radius, status fallback, dan pilihan target rute evakuasi.
 
 **Peta sendiri:** Tile default Leaflet, tapi ubah tile layer ke CartoDB Dark Matter atau CartoDB Voyager (lebih earthy, bukan OpenStreetMap default).
 

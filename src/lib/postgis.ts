@@ -33,6 +33,7 @@ export type NearbyMapObjectRow = {
   id: number;
   project_id: number;
   layer_id: number;
+  layer_type: string | null;
   category_id: number | null;
   risk_level_id: number | null;
   name: string;
