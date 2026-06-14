@@ -279,7 +279,7 @@ export function PublicDatasetEarth() {
             <div className="relative h-[460px] md:h-[540px]">
               <div ref={containerRef} className="absolute inset-0" />
               {hovered ? (
-                <div className="absolute bottom-4 left-4 z-10 max-w-md border-2 border-earth-dark bg-earth-light p-4 text-xs shadow-[4px_4px_0_#1c1a14]">
+                <div className="absolute bottom-4 left-4 z-10 max-h-[calc(100%-2rem)] max-w-md overflow-y-auto border-2 border-earth-dark bg-earth-light p-4 text-xs shadow-[4px_4px_0_#1c1a14]">
                   <p className="label-mono text-moss">{hovered.category}</p>
                   <h3 className="mt-2 text-base font-bold">{hovered.label}</h3>
                   <p className="mt-2 leading-5 text-earth-dark/70">{hovered.summary}</p>
@@ -290,6 +290,19 @@ export function PublicDatasetEarth() {
                       {hovered.status_description ? (
                         <p className="mt-1 leading-5 text-earth-dark/65">{hovered.status_description}</p>
                       ) : null}
+                    </div>
+                  ) : null}
+                  {hovered.technical_details?.length ? (
+                    <div className="mt-3 border-2 border-earth-dark/15 bg-earth-paper p-3">
+                      <p className="label-mono text-earth-dark/55">Detail teknis</p>
+                      <div className="mt-2 grid gap-1.5">
+                        {hovered.technical_details.map((detail) => (
+                          <div key={`${detail.label}-${detail.value}`} className="grid grid-cols-[128px_1fr] gap-2">
+                            <span className="text-earth-dark/55">{detail.label}</span>
+                            <span className="font-bold text-earth-dark">{detail.value}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ) : null}
                   <div className="mt-3 grid gap-2 text-earth-dark/62">

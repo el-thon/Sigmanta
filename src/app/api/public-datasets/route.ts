@@ -183,6 +183,12 @@ function pointCoordinates(feature: GeoJsonFeature) {
   return { longitude: lng, latitude: lat };
 }
 
+function compactDetails(details: Array<{ label: string; value: string | number | null | undefined }>) {
+  return details
+    .filter((detail) => detail.value !== null && detail.value !== undefined && String(detail.value).trim() !== "")
+    .map((detail) => ({ label: detail.label, value: String(detail.value) }));
+}
+
 async function fetchJson<T>(url: string) {
   const response = await fetch(url, {
     headers: { Accept: "application/json" },
@@ -204,8 +210,15 @@ async function loadEarthquakes(importedAt: string): Promise<PublicDatasetFeature
       const properties = feature.properties ?? {};
       const mag = numberValue(properties.mag);
       const time = numberValue(properties.time);
+      const updated = numberValue(properties.updated);
+      const depth = Array.isArray(feature.geometry?.coordinates) ? numberValue(feature.geometry.coordinates[2]) : null;
       const place = String(properties.place ?? "Gempa bumi");
       const url = String(properties.url ?? layer.sourceUrl);
+      const tsunami = numberValue(properties.tsunami);
+      const felt = numberValue(properties.felt);
+      const sig = numberValue(properties.sig);
+      const gap = numberValue(properties.gap);
+      const rms = numberValue(properties.rms);
 
       return {
         id: `usgs-${feature.id ?? `${coordinates.longitude}-${coordinates.latitude}`}`,
@@ -221,6 +234,24 @@ async function loadEarthquakes(importedAt: string): Promise<PublicDatasetFeature
         source_license: layer.sourceLicense,
         imported_at: importedAt,
         confidence: layer.confidence,
+        status_label: mag === null ? "Magnitude tidak tersedia" : `Magnitude ${mag}`,
+        status_description: depth === null
+          ? "Data gempa dari USGS. Kedalaman tidak tersedia pada titik ini."
+          : `Gempa tercatat pada kedalaman sekitar ${roundedReading(depth)} km.`,
+        interpretation_standard: "USGS Earthquake GeoJSON feed",
+        technical_details: compactDetails([
+          { label: "Magnitude", value: mag === null ? null : `M ${mag}` },
+          { label: "Kedalaman", value: depth === null ? null : `${roundedReading(depth)} km` },
+          { label: "Waktu kejadian", value: time ? new Date(time).toLocaleString("id-ID") : null },
+          { label: "Update USGS", value: updated ? new Date(updated).toLocaleString("id-ID") : null },
+          { label: "Jenis magnitude", value: properties.magType ? String(properties.magType) : null },
+          { label: "Status review", value: properties.status ? String(properties.status) : null },
+          { label: "Tsunami flag", value: tsunami === null ? null : tsunami === 1 ? "Ya" : "Tidak" },
+          { label: "Laporan dirasakan", value: felt },
+          { label: "Significance", value: sig },
+          { label: "Azimuthal gap", value: gap === null ? null : `${roundedReading(gap)}°` },
+          { label: "RMS residual", value: rms },
+        ]),
       };
     })
     .filter((feature): feature is PublicDatasetFeature => feature !== null)
@@ -242,10 +273,14 @@ async function loadEonet(importedAt: string): Promise<PublicDatasetFeature[]> {
       const primaryCategory = categories
         .map((category) => (category && typeof category === "object" && "id" in category ? String((category as { id?: unknown }).id) : ""))
         .find(Boolean);
+      const categoryTitle = categories
+        .map((category) => (category && typeof category === "object" && "title" in category ? String((category as { title?: unknown }).title) : ""))
+        .find(Boolean);
       const category = primaryCategory === "wildfires" ? "wildfires" : "natural_events";
       const categoryLayer = publicLayerById(category) ?? layer;
       const date = typeof properties.date === "string" ? properties.date : null;
       const sourceUrl = typeof properties.link === "string" ? properties.link : categoryLayer.sourceUrl;
+      const source = typeof properties.sources === "string" ? properties.sources : null;
 
       return {
         id: `eonet-${String(feature.id ?? properties.id ?? `${coordinates.longitude}-${coordinates.latitude}`)}`,
@@ -261,6 +296,20 @@ async function loadEonet(importedAt: string): Promise<PublicDatasetFeature[]> {
         source_license: categoryLayer.sourceLicense,
         imported_at: importedAt,
         confidence: categoryLayer.confidence,
+        status_label: category === "wildfires" ? "Event wildfire aktif" : "Kejadian alam aktif",
+        status_description: date
+          ? `Event masih berstatus aktif di NASA EONET dan terakhir tercatat pada ${new Date(date).toLocaleString("id-ID")}.`
+          : "Event masih berstatus aktif di NASA EONET.",
+        interpretation_standard: "NASA EONET open event status",
+        technical_details: compactDetails([
+          { label: "Kategori EONET", value: categoryTitle ?? primaryCategory },
+          { label: "ID kategori", value: primaryCategory },
+          { label: "Tanggal event", value: date ? new Date(date).toLocaleString("id-ID") : null },
+          { label: "Longitude", value: roundedReading(coordinates.longitude) },
+          { label: "Latitude", value: roundedReading(coordinates.latitude) },
+          { label: "Sumber event", value: source },
+          { label: "Status", value: "Open / aktif" },
+        ]),
       };
     })
     .filter((feature): feature is PublicDatasetFeature => feature !== null);
@@ -290,11 +339,12 @@ async function loadFirms(importedAt: string): Promise<PublicDatasetFeature[]> {
       const longitude = numberValue(row.longitude);
       if (latitude === null || longitude === null) return null;
       const observedAt = row.acq_date ? `${row.acq_date}T${String(row.acq_time ?? "0000").padStart(4, "0").slice(0, 2)}:${String(row.acq_time ?? "0000").padStart(4, "0").slice(2, 4)}:00Z` : null;
+      const brightness = row.bright_ti4 ?? row.brightness ?? null;
       return {
         id: `firms-${row.latitude}-${row.longitude}-${row.acq_date}-${index}`,
         category: "wildfires",
         label: "VIIRS active fire hotspot",
-        summary: `Brightness ${row.bright_ti4 ?? row.brightness ?? "-"}, confidence ${row.confidence ?? "-"}`,
+        summary: `Brightness ${brightness ?? "-"}, confidence ${row.confidence ?? "-"}`,
         longitude,
         latitude,
         value: row.confidence ? `Conf ${row.confidence}` : null,
@@ -304,6 +354,21 @@ async function loadFirms(importedAt: string): Promise<PublicDatasetFeature[]> {
         source_license: layer.sourceLicense,
         imported_at: importedAt,
         confidence: "high",
+        status_label: "Hotspot satelit aktif",
+        status_description: "Titik ini adalah deteksi panas aktif dari satelit NASA FIRMS. Ini menandakan anomali panas, bukan selalu kebakaran terverifikasi di lapangan.",
+        interpretation_standard: "NASA FIRMS active fire detection",
+        technical_details: compactDetails([
+          { label: "Brightness", value: brightness },
+          { label: "Confidence satelit", value: row.confidence },
+          { label: "FRP", value: row.frp ? `${row.frp} MW` : null },
+          { label: "Satelit", value: row.satellite },
+          { label: "Instrumen", value: row.instrument },
+          { label: "Waktu akuisisi", value: observedAt ? new Date(observedAt).toLocaleString("id-ID") : null },
+          { label: "Day/night", value: row.daynight },
+          { label: "Scan", value: row.scan },
+          { label: "Track", value: row.track },
+          { label: "Versi data", value: row.version },
+        ]),
       };
     })
     .filter((feature): feature is PublicDatasetFeature => feature !== null)

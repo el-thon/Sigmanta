@@ -38,6 +38,10 @@ export type PublicDatasetFeature = {
   status_label?: string;
   status_description?: string;
   interpretation_standard?: string;
+  technical_details?: Array<{
+    label: string;
+    value: string;
+  }>;
 };
 
 export const PUBLIC_DATASET_LAYERS: PublicDatasetLayer[] = [
