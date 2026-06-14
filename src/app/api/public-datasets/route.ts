@@ -15,6 +15,33 @@ type GeoJsonCollection = {
   features?: GeoJsonFeature[];
 };
 
+type OpenAqLatestResult = {
+  datetime?: {
+    utc?: string;
+    local?: string;
+  };
+  value?: number;
+  coordinates?: {
+    latitude?: number;
+    longitude?: number;
+  };
+  sensorsId?: number;
+  locationsId?: number;
+};
+
+type OpenAqLatestResponse = {
+  results?: OpenAqLatestResult[];
+};
+
+const OPENAQ_PARAMETERS = [
+  { id: 2, label: "PM2.5" },
+  { id: 3, label: "PM10" },
+  { id: 5, label: "NO2" },
+  { id: 6, label: "SO2" },
+  { id: 7, label: "O3" },
+  { id: 8, label: "CO" },
+];
+
 function numberValue(value: unknown) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
@@ -156,29 +183,87 @@ async function loadFirms(importedAt: string): Promise<PublicDatasetFeature[]> {
     .slice(0, 150);
 }
 
+async function loadOpenAq(importedAt: string): Promise<PublicDatasetFeature[]> {
+  const key = process.env.OPENAQ_API_KEY;
+  const layer = publicLayerById("air_quality");
+  if (!key || !layer) return [];
+
+  const responses = await Promise.allSettled(
+    OPENAQ_PARAMETERS.map(async (parameter) => {
+      const url = `https://api.openaq.org/v3/parameters/${parameter.id}/latest?limit=35`;
+      const response = await fetch(url, {
+        headers: {
+          Accept: "application/json",
+          "X-API-Key": key,
+        },
+        next: { revalidate: 900 },
+      });
+      if (!response.ok) throw new Error(`OpenAQ parameter ${parameter.id}: ${response.status} ${response.statusText}`);
+      const data = (await response.json()) as OpenAqLatestResponse;
+      return { parameter, results: data.results ?? [] };
+    })
+  );
+
+  return responses
+    .flatMap((response) => (response.status === "fulfilled" ? response.value.results.map((result) => ({ parameter: response.value.parameter, result })) : []))
+    .map(({ parameter, result }): PublicDatasetFeature | null => {
+      const latitude = numberValue(result.coordinates?.latitude);
+      const longitude = numberValue(result.coordinates?.longitude);
+      const value = numberValue(result.value);
+      if (latitude === null || longitude === null || value === null) return null;
+      const observedAt = result.datetime?.utc ?? result.datetime?.local ?? null;
+
+      return {
+        id: `openaq-${parameter.id}-${result.locationsId ?? "loc"}-${result.sensorsId ?? "sensor"}-${observedAt ?? "latest"}`,
+        category: "air_quality",
+        label: `${parameter.label} air quality reading`,
+        summary: `${parameter.label}: ${value}${observedAt ? `, ${new Date(observedAt).toLocaleString("id-ID")}` : ""}`,
+        longitude,
+        latitude,
+        value: `${parameter.label} ${value}`,
+        observedAt,
+        source: layer.source,
+        source_url: `https://api.openaq.org/v3/parameters/${parameter.id}/latest`,
+        source_license: layer.sourceLicense,
+        imported_at: importedAt,
+        confidence: layer.confidence,
+      };
+    })
+    .filter((feature): feature is PublicDatasetFeature => feature !== null)
+    .slice(0, 180);
+}
+
 export async function GET(request: NextRequest) {
   const importedAt = new Date().toISOString();
   const requested = request.nextUrl.searchParams.get("categories")?.split(",").filter(Boolean) ?? [];
   const include = (id: string) => !requested.length || requested.includes(id);
+  const nasaFirmsConfigured = Boolean(process.env.NASA_FIRMS_MAP_KEY);
+  const openAqConfigured = Boolean(process.env.OPENAQ_API_KEY);
   const settled = await Promise.allSettled([
     include("earthquakes") ? loadEarthquakes(importedAt) : Promise.resolve([]),
     include("natural_events") || include("wildfires") ? loadEonet(importedAt) : Promise.resolve([]),
     include("wildfires") ? loadFirms(importedAt) : Promise.resolve([]),
+    include("air_quality") ? loadOpenAq(importedAt) : Promise.resolve([]),
   ]);
 
   const features = settled.flatMap((result) => (result.status === "fulfilled" ? result.value : []));
   const errors = settled
     .map((result, index) => result.status === "rejected" ? `source-${index}: ${result.reason instanceof Error ? result.reason.message : String(result.reason)}` : null)
     .filter(Boolean);
+  const layers = PUBLIC_DATASET_LAYERS.map((layer) => {
+    if (layer.id === "air_quality" && openAqConfigured) return { ...layer, status: "live" as const, liveInApi: true };
+    if (layer.id === "wildfires" && nasaFirmsConfigured) return { ...layer, status: "live" as const };
+    return layer;
+  });
 
   return success({
     importedAt,
-    layers: PUBLIC_DATASET_LAYERS,
+    layers,
     features,
     errors,
     env: {
-      nasaFirmsConfigured: Boolean(process.env.NASA_FIRMS_MAP_KEY),
-      openAqConfigured: Boolean(process.env.OPENAQ_API_KEY),
+      nasaFirmsConfigured,
+      openAqConfigured,
     },
   });
 }
