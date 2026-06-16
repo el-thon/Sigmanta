@@ -53,6 +53,8 @@ Fitur MVP yang harus tersedia:
 15. Export PDF laporan peta.
 16. Dashboard ringkasan project.
 17. Public dataset viewer pada home page dengan filter kategori, search, hover detail, dan metadata sumber data.
+18. Import file geospasial GeoJSON, KML, dan Shapefile ZIP ke project sebagai objek editable.
+19. Activity log project untuk audit import, export, share, dan perubahan objek.
 
 ## 5. Fitur Non-MVP
 
@@ -349,6 +351,8 @@ Contoh atribut titik mitigasi dan marker yang diisi dari UI:
 12. `/share/[token]` — Preview dan import project dari share link
 13. `/settings` — Pengaturan akun
 14. `/api/public-datasets` — Proxy dan normalisasi public dataset untuk 3D Earth.
+15. `/api/projects/[id]/import-geojson` — Import GeoJSON/KML/Shapefile ZIP yang dinormalisasi menjadi FeatureCollection.
+16. `/api/projects/[id]/activity` — Activity log project.
 
 ## 16. Output Sistem
 
@@ -365,6 +369,8 @@ Contoh atribut titik mitigasi dan marker yang diisi dari UI:
 11. Laporan ringkas kondisi wilayah.
 12. 3D Earth publik dengan layer dataset global.
 13. Detail provenance data publik saat hover atau memilih fitur.
+14. Objek hasil import file GeoJSON/KML/Shapefile ZIP.
+15. Timeline activity log project.
 
 ## 16.1 Spesifikasi Export PDF Laporan Peta
 
@@ -453,6 +459,8 @@ Perubahan penting dari konsep sebelumnya:
 12. `DELETE /api/map-objects/:id`
 13. `POST /api/projects/:id/export`
 14. `GET /api/public-datasets`
+15. `POST /api/projects/:id/import-geojson`
+16. `GET /api/projects/:id/activity`
 
 ## 19. Alur Penggunaan
 
@@ -543,6 +551,8 @@ Perubahan penting dari konsep sebelumnya:
 2. Export PDF laporan peta.
 3. Ringkasan jumlah objek.
 4. Ringkasan luas area.
+5. Import GeoJSON, KML, dan Shapefile ZIP.
+6. Activity log project dan metadata perubahan objek.
 
 ## 21. Definition of Done
 

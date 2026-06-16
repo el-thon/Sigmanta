@@ -533,6 +533,7 @@ Bento grid 3 kolom untuk daftar project:
 - Glass accent style — karena berada di atas peta
 - Border kanan brutal: `2px solid`
 - Tombol drawing tools: brutal icon buttons, active state dengan offset shadow inverted
+- Section import data geospasial berada di sidebar tools, menerima GeoJSON, KML, dan Shapefile ZIP, lalu menampilkan preview jumlah fitur valid/dilewati sebelum import.
 
 **Panel Detail Objek (kanan, slide-in):**
 - Muncul saat user klik objek di peta
@@ -838,6 +839,7 @@ Ketika mengimplementasikan prompt ini, hasil akhir yang diharapkan:
 | Export PDF | Layout A4 landscape berisi peta, legenda, skala, arah utara, ringkasan data, dan identitas export |
 | Share Preview `/share/[token]` | Card preview project, CTA import brutal button |
 | Auth `/login`, `/register` | Form minimal, brutal input + button, half-screen ilustrasi peta |
+| Project Detail `/projects/[id]` | Project form, metrics, dan activity timeline project |
 
 ---
 
