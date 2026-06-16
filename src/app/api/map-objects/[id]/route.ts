@@ -43,6 +43,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       id: true,
       projectId: true,
       layerId: true,
+      name: true,
+      label: true,
+      categoryId: true,
+      riskLevelId: true,
+      description: true,
+      notes: true,
     },
   });
   if (!existingObject) return errorResponse("Objek peta tidak ditemukan", 404);
@@ -84,6 +90,24 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       targetType: "map_object",
       targetId: object.id,
       description: "Objek peta diperbarui dari workspace",
+      metadata: {
+        before: {
+          name: existingObject.name,
+          label: existingObject.label,
+          categoryId: existingObject.categoryId,
+          riskLevelId: existingObject.riskLevelId,
+          description: existingObject.description,
+          notes: existingObject.notes,
+        },
+        after: {
+          name: object.name,
+          label: object.label,
+          categoryId: object.categoryId,
+          riskLevelId: object.riskLevelId,
+          description: object.description,
+          notes: object.notes,
+        },
+      },
     },
   });
 
@@ -103,7 +127,7 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
       id: objectId,
       project: { ownerId: user.id },
     },
-    select: { id: true, projectId: true },
+    select: { id: true, projectId: true, name: true, objectType: true, geometryType: true },
   });
   if (!existingObject) return errorResponse("Objek peta tidak ditemukan", 404);
 
@@ -117,6 +141,13 @@ export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id:
       targetType: "map_object",
       targetId: objectId,
       description: "Objek peta dihapus dari workspace",
+      metadata: {
+        deleted: {
+          name: existingObject.name,
+          objectType: existingObject.objectType,
+          geometryType: existingObject.geometryType,
+        },
+      },
     },
   });
 
