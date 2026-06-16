@@ -5,8 +5,8 @@ import { Circle as LeafletCircle, GeoJSON as GeoJSONLayer, MapContainer, Marker,
 import L from "leaflet";
 import "@geoman-io/leaflet-geoman-free";
 import * as turf from "@turf/turf";
-import { BarChart3, Circle as CircleIcon, FolderOpen, Hexagon, Layers, MapIcon, MapPin, MousePointer2, Plus, Route, Save, Search, Settings, Square, Trash2, X } from "lucide-react";
-import type { Feature, LineString } from "geojson";
+import { BarChart3, Circle as CircleIcon, FileUp, FolderOpen, Hexagon, Layers, MapIcon, MapPin, MousePointer2, Plus, Route, Save, Search, Settings, Square, Trash2, X } from "lucide-react";
+import type { Feature, FeatureCollection, LineString } from "geojson";
 
 type LayerType = "land_segmentation" | "disaster_risk" | "elevation" | "marker_label" | "evacuation_route" | "mitigation_resource";
 type GeometryType = "point" | "linestring" | "polygon" | "rectangle" | "circle";
@@ -127,6 +127,12 @@ type RouteCandidate = {
 type NearbyCandidate = WorkspaceMapObject & {
   distanceM: number;
   layerType?: LayerType;
+};
+type ImportPreview = {
+  fileName: string;
+  featureCollection: FeatureCollection;
+  validCount: number;
+  skipped: string[];
 };
 type BoundaryResult = {
   id: string;
@@ -354,6 +360,79 @@ function objectCoordinateCount(object: WorkspaceMapObject) {
   const geometry = object.geometry.geometry;
   if ("coordinates" in geometry) return countCoordinatePairs(geometry.coordinates);
   return 0;
+}
+
+function isImportableFeatureCollection(value: unknown): value is FeatureCollection {
+  return Boolean(value && typeof value === "object" && (value as { type?: unknown }).type === "FeatureCollection" && Array.isArray((value as { features?: unknown }).features));
+}
+
+function geoJsonGeometrySupported(feature: Feature) {
+  return feature.geometry?.type === "Point" || feature.geometry?.type === "LineString" || feature.geometry?.type === "Polygon";
+}
+
+function previewGeoJsonImport(fileName: string, value: unknown): ImportPreview {
+  if (!isImportableFeatureCollection(value)) throw new Error("File harus berupa GeoJSON FeatureCollection.");
+  const skipped: string[] = [];
+  let validCount = 0;
+
+  value.features.forEach((feature, index) => {
+    if (geoJsonGeometrySupported(feature as Feature)) {
+      validCount += 1;
+      return;
+    }
+    skipped.push(`Feature ${index + 1}: geometry ${(feature as Feature).geometry?.type ?? "unknown"} belum didukung`);
+  });
+
+  return { fileName, featureCollection: value, validCount, skipped };
+}
+
+function parseKmlCoordinates(value: string) {
+  return value
+    .trim()
+    .split(/\s+/)
+    .map((coordinate) => {
+      const [longitude, latitude] = coordinate.split(",").map(Number);
+      return [longitude, latitude];
+    })
+    .filter(([longitude, latitude]) => Number.isFinite(longitude) && Number.isFinite(latitude));
+}
+
+function kmlToFeatureCollection(text: string): FeatureCollection {
+  const documentXml = new DOMParser().parseFromString(text, "application/xml");
+  const parserError = documentXml.getElementsByTagName("parsererror")[0];
+  if (parserError) throw new Error("File KML tidak valid.");
+
+  const features = Array.from(documentXml.getElementsByTagName("Placemark")).flatMap((placemark, index): Feature[] => {
+    const name = placemark.getElementsByTagName("name")[0]?.textContent?.trim() || `KML Feature ${index + 1}`;
+    const point = placemark.getElementsByTagName("Point")[0]?.getElementsByTagName("coordinates")[0]?.textContent;
+    if (point) {
+      const coordinates = parseKmlCoordinates(point)[0];
+      if (coordinates) return [{ type: "Feature", properties: { name }, geometry: { type: "Point", coordinates } }];
+    }
+
+    const line = placemark.getElementsByTagName("LineString")[0]?.getElementsByTagName("coordinates")[0]?.textContent;
+    if (line) {
+      const coordinates = parseKmlCoordinates(line);
+      if (coordinates.length >= 2) return [{ type: "Feature", properties: { name }, geometry: { type: "LineString", coordinates } }];
+    }
+
+    const polygon = placemark.getElementsByTagName("Polygon")[0]?.getElementsByTagName("outerBoundaryIs")[0]?.getElementsByTagName("coordinates")[0]?.textContent;
+    if (polygon) {
+      const coordinates = parseKmlCoordinates(polygon);
+      if (coordinates.length >= 4) return [{ type: "Feature", properties: { name }, geometry: { type: "Polygon", coordinates: [coordinates] } }];
+    }
+
+    return [];
+  });
+
+  return { type: "FeatureCollection", features };
+}
+
+function normalizeFeatureCollection(value: FeatureCollection | FeatureCollection[]): FeatureCollection {
+  if (Array.isArray(value)) {
+    return { type: "FeatureCollection", features: value.flatMap((collection) => collection.features ?? []) };
+  }
+  return value;
 }
 
 function objectTooltipText(object: WorkspaceMapObject, layer?: WorkspaceLayer, risk?: WorkspaceRiskLevel | null) {
@@ -1027,6 +1106,13 @@ export function MapWorkspace({
   const [boundaryResults, setBoundaryResults] = useState<BoundaryResult[]>([]);
   const [boundaryLoading, setBoundaryLoading] = useState(false);
   const [boundaryError, setBoundaryError] = useState("");
+  const [importLayerType, setImportLayerType] = useState<LayerType>("land_segmentation");
+  const [importCategoryId, setImportCategoryId] = useState("");
+  const [importRiskLevelId, setImportRiskLevelId] = useState("");
+  const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState("");
+  const [importMessage, setImportMessage] = useState("");
   const [evacuationRoute, setEvacuationRoute] = useState<EvacuationRouteState>({
     loading: false,
     error: "",
@@ -1620,6 +1706,72 @@ export function MapWorkspace({
     if (!data.results?.length) setBoundaryError("Boundary polygon tidak ditemukan untuk kata kunci tersebut.");
   }
 
+  async function handleGeoJsonFile(file: File | null) {
+    setImportError("");
+    setImportMessage("");
+    setImportPreview(null);
+    if (!file) return;
+
+    try {
+      const fileName = file.name.toLowerCase();
+      if (fileName.endsWith(".kml")) {
+        setImportPreview(previewGeoJsonImport(file.name, kmlToFeatureCollection(await file.text())));
+        return;
+      }
+
+      if (fileName.endsWith(".zip")) {
+        const module = await import("shpjs");
+        const shp = (module.default ?? module) as unknown as (input: ArrayBuffer) => Promise<FeatureCollection | FeatureCollection[]>;
+        const parsed = await shp(await file.arrayBuffer());
+        setImportPreview(previewGeoJsonImport(file.name, normalizeFeatureCollection(parsed)));
+        return;
+      }
+
+      setImportPreview(previewGeoJsonImport(file.name, JSON.parse(await file.text())));
+    } catch (error) {
+      setImportError(error instanceof Error ? error.message : "File geospasial tidak valid.");
+    }
+  }
+
+  async function importGeoJson(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!importPreview) {
+      setImportError("Pilih file GeoJSON terlebih dahulu.");
+      return;
+    }
+
+    setImportLoading(true);
+    setImportError("");
+    setImportMessage("");
+
+    const response = await fetch(`/api/projects/${projectId}/import-geojson`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        layerType: importLayerType,
+        categoryId: Number(importCategoryId) || null,
+        riskLevelId: Number(importRiskLevelId) || null,
+        namePrefix: importPreview.fileName.replace(/\.[^.]+$/, ""),
+        featureCollection: importPreview.featureCollection,
+      }),
+    });
+
+    const data = await response.json().catch(() => null);
+    setImportLoading(false);
+
+    if (!response.ok) {
+      setImportError(data?.message ?? "Import GeoJSON gagal.");
+      return;
+    }
+
+    const importedObjects = Array.isArray(data?.objects) ? data.objects : [];
+    setObjects((current) => [...importedObjects, ...current]);
+    setImportMessage(`${data.importedCount ?? importedObjects.length} objek berhasil diimpor${data.skipped?.length ? `, ${data.skipped.length} fitur dilewati` : ""}.`);
+    setImportPreview(null);
+    setImportCategoryId("");
+    setImportRiskLevelId("");
+  }
+
   function useBoundaryAsDraft(result: BoundaryResult) {
     const geometry = result.geojson;
     const areaSize = Math.round(turf.area(geometry) * 100) / 100;
@@ -1647,6 +1799,9 @@ export function MapWorkspace({
       if (bounds.isValid()) map.fitBounds(bounds.pad(0.12));
     }
   }
+
+  const importTargetLayers = layers.filter((layer) => ["land_segmentation", "disaster_risk", "marker_label", "mitigation_resource", "evacuation_route"].includes(layer.layerType));
+  const selectedImportLayer = layerByType.get(importLayerType);
 
   return (
     <div className="grid min-h-[calc(100vh-66px)] border-t-2 border-earth-dark bg-earth-light md:h-[calc(100vh-66px)] md:grid-cols-[300px_1fr_340px] md:overflow-hidden">
@@ -1785,6 +1940,77 @@ export function MapWorkspace({
                 </div>
               ) : null}
             </div>
+            <form onSubmit={importGeoJson} className="mt-4 border-t-2 border-earth-dark/20 pt-4">
+              <p className="label-mono text-earth-dark/70">Import Data Geospasial</p>
+              <p className="mt-2 text-xs leading-5 text-earth-dark/58">
+                Upload GeoJSON, KML, atau Shapefile ZIP berisi Point, LineString, atau Polygon untuk dibuat sebagai objek editable.
+              </p>
+              <label className="mt-3 flex cursor-pointer items-center gap-2 border-2 border-earth-dark bg-earth-light px-3 py-2 text-xs font-bold uppercase">
+                <FileUp size={16} />
+                <span className="min-w-0 flex-1 truncate">{importPreview?.fileName ?? "Pilih file geospasial"}</span>
+                <input
+                  accept=".geojson,.json,.kml,.zip,application/geo+json,application/json,application/vnd.google-earth.kml+xml,application/zip"
+                  className="hidden"
+                  onChange={(event) => void handleGeoJsonFile(event.target.files?.[0] ?? null)}
+                  type="file"
+                />
+              </label>
+              <label className="mt-3 block">
+                <span className="label-mono text-earth-dark/60">Layer Tujuan</span>
+                <select
+                  className="mt-2 w-full border-2 border-earth-dark bg-earth-light px-3 py-2 text-sm outline-none"
+                  onChange={(event) => {
+                    setImportLayerType(event.target.value as LayerType);
+                    setImportCategoryId("");
+                    setImportRiskLevelId("");
+                  }}
+                  value={importLayerType}
+                >
+                  {importTargetLayers.map((layer) => (
+                    <option key={layer.id} value={layer.layerType}>{layer.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="mt-3 block">
+                <span className="label-mono text-earth-dark/60">Kategori</span>
+                <select
+                  className="mt-2 w-full border-2 border-earth-dark bg-earth-light px-3 py-2 text-sm outline-none"
+                  onChange={(event) => setImportCategoryId(event.target.value)}
+                  value={importCategoryId}
+                >
+                  <option value="">Tidak dipilih</option>
+                  {(selectedImportLayer?.categories ?? []).map((category) => (
+                    <option key={category.id} value={category.id}>{category.name}</option>
+                  ))}
+                </select>
+              </label>
+              {importLayerType === "disaster_risk" ? (
+                <label className="mt-3 block">
+                  <span className="label-mono text-earth-dark/60">Tingkat Risiko</span>
+                  <select
+                    className="mt-2 w-full border-2 border-earth-dark bg-earth-light px-3 py-2 text-sm outline-none"
+                    onChange={(event) => setImportRiskLevelId(event.target.value)}
+                    value={importRiskLevelId}
+                  >
+                    <option value="">Tidak dipilih</option>
+                    {riskLevels.map((risk) => (
+                      <option key={risk.id} value={risk.id}>{risk.name}</option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              {importPreview ? (
+                <div className="mt-3 border border-earth-dark/15 bg-earth-paper p-3 text-xs leading-5">
+                  <p className="font-bold">{importPreview.validCount} fitur valid</p>
+                  <p className="text-earth-dark/60">{importPreview.skipped.length} fitur akan dilewati.</p>
+                </div>
+              ) : null}
+              {importError ? <p className="mt-3 border-2 border-hazard bg-hazard-light p-3 text-xs leading-5 text-hazard">{importError}</p> : null}
+              {importMessage ? <p className="mt-3 border-2 border-moss bg-moss-light p-3 text-xs leading-5">{importMessage}</p> : null}
+              <button className="brutal-button mt-3 w-full bg-earth-dark px-4 py-3 text-earth-light" disabled={importLoading || !importPreview || !importPreview.validCount} type="submit">
+                <FileUp size={16} /> {importLoading ? "Mengimpor..." : "Import Data"}
+              </button>
+            </form>
           </div>
         </div>
 
